@@ -1,0 +1,91 @@
+require 'faraday'
+require 'json'
+require 'date'
+
+class DividendSyncer
+  def sync
+    Stock.find_each do |stock|
+      puts "Syncing dividends for #{stock.name} (#{stock.secid})..."
+      begin
+        fetch_and_save_dividends(stock)
+      rescue => e
+        puts "Error syncing dividends for #{stock.name}: #{e.message}"
+      end
+      sleep(rand(1.0..2.0))
+    end
+  end
+
+  private
+
+  def fetch_and_save_dividends(stock)
+    url = "https://datacenter-web.eastmoney.com/api/data/get"
+    params = {
+      type: "RPT_LICO_FN_CPD",
+      sty: "ALL",
+      filter: "(SECURITY_CODE=\"#{stock.code}\")",
+      p: 1,
+      ps: 50
+    }
+
+    headers = {
+      'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept' => 'application/json'
+    }
+
+    conn = Faraday.new(url: url) do |f|
+      f.request :url_encoded
+      f.adapter Faraday.default_adapter
+    end
+
+    response = conn.get('', params, headers)
+    return unless response.success?
+
+    data = JSON.parse(response.body)
+    results = data.dig('result', 'data') || []
+    if results.empty?
+      puts "No dividend data in response for #{stock.name}: #{response.body[0..200]}"
+      return
+    end
+
+    records_created = 0
+    results.each do |item|
+      report_date = Date.parse(item['REPORTDATE']) rescue nil
+      next unless report_date
+
+      description = item['ASSIGNDSCRPT']
+      if description.nil? || description == "不分配" || description == "无分红"
+        # puts "Skipping #{stock.name} report #{report_date}: #{description || 'nil'}"
+        next
+      end
+
+      base = 10.0
+      base = $1.to_f if description =~ /(\d+)派|送|转/
+
+      cash = 0.0
+      bonus = 0.0
+      rights = 0.0
+
+      if base > 0
+        cash = $1.to_f / base if description =~ /派([\d\.]+)元/
+        bonus = $1.to_f / base if description =~ /送([\d\.]+)股/
+        rights = $1.to_f / base if description =~ /转([\d\.]+)股/
+      end
+
+      div = Dividend.find_or_initialize_by(stock_id: stock.id, report_date: report_date)
+      div.notice_date = Date.parse(item['NOTICE_DATE']) rescue nil
+      div.plan_description = description
+      div.cash_dividend = cash.finite? ? cash : 0
+      div.bonus_issue = bonus.finite? ? bonus : 0
+      div.rights_issue = rights.finite? ? rights : 0
+      
+      yield_val = item['ZXGXL'].to_f
+      div.dividend_yield = yield_val.finite? ? yield_val : nil
+      
+      if div.changed?
+        div.save!
+        records_created += 1
+      end
+    end
+    puts "Saved #{records_created} dividend records for #{stock.name}."
+  end
+end
