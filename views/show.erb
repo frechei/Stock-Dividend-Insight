@@ -9,6 +9,18 @@
                     <span class="px-2 py-1 <%= @stock.market_id == 1 ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600' %> rounded text-xs">
                         <%= @stock.market_id == 1 ? '上证' : '深证' %>
                     </span>
+                    
+                    <div class="flex space-x-2 ml-4">
+                        <% market_prefix = @stock.market_id == 1 ? 'sh' : 'sz' %>
+                        <a href="https://quote.eastmoney.com/<%= market_prefix %><%= @stock.code %>.html" target="_blank" class="text-xs text-blue-500 hover:text-blue-700 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            东方财富
+                        </a>
+                        <a href="https://finance.sina.com.cn/realstock/company/<%= market_prefix %><%= @stock.code %>/nc.shtml" target="_blank" class="text-xs text-orange-500 hover:text-orange-700 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            新浪财经
+                        </a>
+                    </div>
                 </div>
                 <p class="mt-2 text-gray-500">最新收盘价: <span class="text-2xl font-semibold text-blue-600">¥<%= format_decimal(@stock.current_price, 2) %></span></p>
             </div>

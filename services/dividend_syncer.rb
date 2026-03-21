@@ -53,8 +53,7 @@ class DividendSyncer
       next unless report_date
 
       description = item['ASSIGNDSCRPT']
-      if description.nil? || description == "不分配" || description == "无分红"
-        # puts "Skipping #{stock.name} report #{report_date}: #{description || 'nil'}"
+      if description.nil?
         next
       end
 
