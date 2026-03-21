@@ -2,13 +2,8 @@ require 'active_record'
 require 'yaml'
 require 'faraday'
 require 'json'
+require 'dotenv/load'
 require_relative 'models'
-
-# 数据库配置
-ActiveRecord::Base.establish_connection(
-  adapter: 'postgresql',
-  database: 'stock_dividend_insight'
-)
 
 class StockSyncService
   API_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"

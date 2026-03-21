@@ -1,4 +1,8 @@
 require 'active_record'
+require 'dotenv/load'
+
+# 数据库配置
+ActiveRecord::Base.establish_connection(ENV['DATABASE_URL'])
 
 # 股票信息模型
 # 字段:
