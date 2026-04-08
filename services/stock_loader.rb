@@ -294,6 +294,9 @@ class StockLoader
         end
       end
 
+      PriceHistory.where(stock_id: s.id).delete_all
+      Dividend.where(stock_id: s.id).delete_all
+      Categorization.where(stock_id: s.id).delete_all
       s.destroy!
     end
 

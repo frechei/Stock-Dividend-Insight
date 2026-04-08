@@ -590,11 +590,6 @@ stocks:
   categories:
   - 自动化设备
   - 工业
-- code: "002024"
-  name: 苏宁易购
-  categories:
-  - 零售
-  - 可选消费
 - code: "002032"
   name: 苏泊尔
   categories:
@@ -1075,11 +1070,6 @@ stocks:
   categories:
   - 通信设备
   - 信息技术
-- code: "300630"
-  name: 普利制药
-  categories:
-  - 化学制药
-  - 医药卫生
 - code: "300633"
   name: 开立医疗
   categories:
@@ -1335,11 +1325,6 @@ stocks:
   categories:
   - 电网设备
   - 工业
-- code: "600093"
-  name: 易见股份
-  categories:
-  - 供应链服务
-  - 交通运输
 - code: "600100"
   name: 同方股份
   categories:
@@ -1565,11 +1550,6 @@ stocks:
   categories:
   - 半导体
   - 信息技术
-- code: "600466"
-  name: 蓝光发展
-  categories:
-  - 房地产开发
-  - 房地产
 - code: "600482"
   name: 中国动力
   categories:
