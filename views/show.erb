@@ -142,16 +142,30 @@
     
     const chartData = {
         labels: [<%= @price_histories.map { |ph| "'#{ph.date}'" }.join(',') %>],
-        datasets: [{
-            label: '收盘价 (¥)',
-            data: [<%= @price_histories.map { |ph| ph.close.to_f }.join(',') %>],
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderWidth: 2,
-            pointRadius: 0,
-            fill: true,
-            tension: 0.1
-        }]
+        datasets: [
+            {
+                label: '收盘价 (¥)',
+                data: [<%= @price_histories.map { |ph| ph.close.to_f }.join(',') %>],
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: true,
+                tension: 0.1,
+                yAxisID: 'y'
+            },
+            {
+                label: 'PB',
+                data: [<%= @price_histories.map { |ph| ph.pb.nil? ? 'null' : ph.pb.to_f }.join(',') %>],
+                borderColor: 'rgb(16, 185, 129)',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 1,
+                pointRadius: 0,
+                fill: false,
+                tension: 0.1,
+                yAxisID: 'y1'
+            }
+        ]
     };
 
     new Chart(ctx, {
@@ -194,6 +208,17 @@
                     ticks: {
                         callback: function(value) {
                             return '¥' + value;
+                        }
+                    }
+                },
+                y1: {
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value;
                         }
                     }
                 }

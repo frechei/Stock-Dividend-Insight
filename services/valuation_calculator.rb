@@ -27,19 +27,13 @@ class ValuationCalculator
       stock.expected_dividend_yield = 0.0
     end
 
-    # 2. 历史股息率
-    latest_dividend = stock.dividends.order(report_date: :desc).first
-    if latest_dividend
-      latest_year = latest_dividend.report_date.year
-      year_dividends_sum = stock.dividends.where('EXTRACT(YEAR FROM report_date) = ?', latest_year).sum(:cash_dividend)
-      if year_dividends_sum > 0
-        stock.dividend_yield = (year_dividends_sum / latest_price) * 100
-      else
-        stock.dividend_yield = 0.0
-      end
-    else
-      stock.dividend_yield = 0.0
+    # 2. 连续5年有分红
+    current_year = Date.today.year
+    years = (current_year - 5...current_year).to_a
+    all_years_have_dividend = years.all? do |y|
+      stock.dividends.where('EXTRACT(YEAR FROM report_date) = ?', y).where('cash_dividend > 0').exists?
     end
+    stock.has_dividend_5y = all_years_have_dividend
 
     # 3. 价格位置
     max_price = stock.price_histories.maximum(:high)

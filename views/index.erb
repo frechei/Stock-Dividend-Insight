@@ -5,8 +5,8 @@
                 <svg class="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 股票概览列表 (<%= @stocks.count %>)
             </h2>
-            <div class="text-sm text-gray-500 italic">
-                按 <%= @sort_field %> <%= @sort_order == 'desc' ? '降序' : '升序' %> 排序
+            <div class="text-sm text-gray-500">
+                多字段排序
             </div>
         </div>
 
@@ -19,19 +19,53 @@
                 <span class="text-gray-400">(<%= @cn_10y&.date %>)</span>
             </span>
         </div>
+
+        <% base_params = { sort: @sort_param } %>
+        <% base_params[:category_id] = @current_category.id if @current_category %>
+        <% base_params[:only_div5y] = '1' if @only_div5y %>
+        <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
+            <span class="text-gray-600 font-medium mr-1">当前条件:</span>
+            <% @sorts.each do |s| %>
+                <span class="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
+                    <span class="font-semibold"><%= sort_label(s[:field]) %></span>
+                    <span class="ml-1"><%= s[:order] == 'desc' ? '↓' : '↑' %></span>
+                    <a href="/?<%= build_query(base_params.merge(remove_sort: s[:field])) %>" class="ml-2 text-blue-500 hover:text-blue-800">×</a>
+                </span>
+            <% end %>
+            <% if @current_category %>
+                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                    <span class="font-semibold">分类</span>
+                    <span class="ml-1"><%= @current_category.name %></span>
+                    <a href="/?<%= build_query({ sort: @sort_param, only_div5y: (@only_div5y ? '1' : nil) }) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+                </span>
+            <% end %>
+            <% if @only_div5y %>
+                <span class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded-full border border-green-100">
+                    <span class="font-semibold">连续5年分红</span>
+                    <a href="/?<%= build_query({ sort: @sort_param, category_id: (@current_category&.id), only_div5y: nil }) %>" class="ml-2 text-green-600 hover:text-green-900">×</a>
+                </span>
+            <% end %>
+            <a href="/?<%= build_query(base_params.merge(clear_sorts: '1')) %>" class="ml-2 text-blue-600 hover:underline">清空排序</a>
+            <a href="/" class="text-blue-600 hover:underline">清空全部</a>
+        </div>
         
         <!-- 分类过滤 -->
         <div class="flex flex-wrap gap-2 items-center text-sm">
             <span class="text-gray-600 font-medium mr-2">分类过滤:</span>
-            <a href="/?sort=<%= @sort_field %>&order=<%= @sort_order %>" 
+            <a href="/?<%= build_query({ sort: @sort_param, only_div5y: (@only_div5y ? '1' : nil) }) %>" 
                class="px-3 py-1 rounded-full transition-colors <%= !@current_category ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' %>">
                全部
             </a>
             <% @categories.each do |cat| %>
-                <a href="/?category_id=<%= cat.id %>&sort=<%= @sort_field %>&order=<%= @sort_order %>" 
+                <a href="/?<%= build_query({ category_id: cat.id, sort: @sort_param, only_div5y: (@only_div5y ? '1' : nil) }) %>" 
                    class="px-3 py-1 rounded-full transition-colors <%= @current_category&.id == cat.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' %>">
                    <%= cat.name %>
                 </a>
+            <% end %>
+            <% if @only_div5y %>
+                <a href="/?<%= build_query({ category_id: (@current_category&.id), sort: @sort_param }) %>" class="px-3 py-1 rounded-full bg-green-600 text-white">仅5年分红✓</a>
+            <% else %>
+                <a href="/?<%= build_query({ category_id: (@current_category&.id), sort: @sort_param, only_div5y: '1' }) %>" class="px-3 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">仅显示连续5年分红</a>
             <% end %>
         </div>
     </div>

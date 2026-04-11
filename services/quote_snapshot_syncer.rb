@@ -40,6 +40,9 @@ class QuoteSnapshotSyncer
     stocks = []
     @scope.find_each { |s| stocks << s }
 
+    codes = stocks.map { |s| s.code.to_s.rjust(6, '0') }.uniq
+    eastmoney = fetch_eastmoney_snapshot(codes)
+
     symbols = stocks.map { |s| market_prefix(s.market_id) + s.code.to_s }.uniq
 
     ok_batches = 0
@@ -64,6 +67,8 @@ class QuoteSnapshotSyncer
       parse_tencent_lines(payload).each do |symbol, fields|
         stock = symbol_to_stock[symbol]
         next unless stock
+
+        em = eastmoney[stock.code.to_s.rjust(6, '0')]
 
         price = parse_float(fields[3])
         volume = parse_int(fields[6])
@@ -95,6 +100,9 @@ class QuoteSnapshotSyncer
 
         stock.pe_ttm = pe_ttm if pe_ttm
         stock.pb = pb if pb
+        if em
+          stock.dividend_yield = em[:dividend_yield] if em[:dividend_yield]
+        end
 
         if stock.changed?
           stock.save!
@@ -109,6 +117,79 @@ class QuoteSnapshotSyncer
   end
 
   private
+
+  def fetch_eastmoney_snapshot(codes)
+    wanted = codes.to_h { |c| [c, true] }
+    out = {}
+
+    conn = Faraday.new do |f|
+      f.request :url_encoded
+      f.adapter Faraday.default_adapter
+    end
+
+    url = 'https://push2.eastmoney.com/api/qt/clist/get'
+    fs = 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23'
+    fields = 'f12,f43,f162,f167'
+
+    pn = 1
+    loop do
+      break if wanted.empty?
+      params = {
+        pn: pn,
+        pz: 200,
+        po: 1,
+        np: 1,
+        ut: 'bd1d9ddb04089700cf9c27f6f7426281',
+        fltt: 2,
+        invt: 2,
+        fid: 'f12',
+        fs: fs,
+        fields: fields
+      }
+
+      resp = conn.get(url, params, { 'User-Agent' => 'Mozilla/5.0', 'Referer' => 'https://quote.eastmoney.com/', 'Connection' => 'close' }) do |req|
+        req.options.timeout = 10
+        req.options.open_timeout = 5
+      end
+      break unless resp.success?
+
+      parsed = JSON.parse(resp.body) rescue nil
+      data = parsed && parsed['data']
+      diff = data && data['diff']
+
+      items =
+        case diff
+        when Array
+          diff
+        when Hash
+          diff.values
+        else
+          []
+        end
+
+      break if items.empty?
+
+      items.each do |x|
+        code = x['f12'].to_s.rjust(6, '0')
+        next unless wanted[code]
+
+        out[code] = {
+          price: parse_float(x['f43']),
+          pe_ttm: parse_float(x['f162']),
+          dividend_yield: parse_float(x['f167'])
+        }
+        wanted.delete(code)
+      end
+
+      pn += 1
+      break if pn > 80
+      sleep(0.05 + rand(0.0..0.08))
+    rescue Faraday::Error
+      break
+    end
+
+    out
+  end
 
   def tune_batch_sleep
     low = @tune_low

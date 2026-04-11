@@ -11,9 +11,10 @@ require_relative 'services/category_backfiller'
 require_relative 'services/dividend_etf_constituents_appender'
 require_relative 'services/dividend_syncer'
 require_relative 'services/valuation_calculator'
+require_relative 'services/valuation_history_syncer'
 
 class StockSyncService
-  def initialize(incremental: false, force: false, force_pull: false, backfill_cn10y: false, add_csi500: false, add_a500: false, add_dividend_etf_constituents: false, fill_categories: false)
+  def initialize(incremental: false, force: false, force_pull: false, backfill_cn10y: false, add_csi500: false, add_a500: false, add_dividend_etf_constituents: false, fill_categories: false, sync_valuation_history: false, valuation_years: 10, valuation_force: false)
     @incremental = incremental
     @force = force
     @force_pull = force_pull
@@ -22,6 +23,10 @@ class StockSyncService
     @add_a500 = add_a500
     @add_dividend_etf_constituents = add_dividend_etf_constituents
     @fill_categories = fill_categories
+    @sync_valuation_history = sync_valuation_history
+    @valuation_years = valuation_years.to_i
+    @valuation_years = 10 if @valuation_years <= 0
+    @valuation_force = valuation_force
   end
 
   def run
@@ -49,6 +54,10 @@ class StockSyncService
     
     # 3. 同步 K 线
     PriceHistorySyncer.new(incremental: @incremental && !@force_pull, force: @force || @force_pull).sync
+
+    if @sync_valuation_history
+      ValuationHistorySyncer.new(years: @valuation_years, force: @valuation_force, sleep_range: (0.04..0.10)).sync
+    end
     
     # 4. 同步分红数据
     DividendSyncer.new(force: @force_pull).sync
@@ -69,5 +78,9 @@ if __FILE__ == $0
   fill_categories = ARGV.include?('--fill-categories')
   add_a500 = ARGV.include?('--add-a500')
   add_dividend_etf_constituents = ARGV.include?('--add-dividend-etf-constituents')
-  StockSyncService.new(incremental: incremental, force: force, force_pull: force_pull, backfill_cn10y: backfill_cn10y, add_csi500: add_csi500, add_a500: add_a500, add_dividend_etf_constituents: add_dividend_etf_constituents, fill_categories: fill_categories).run
+  sync_valuation_history = ARGV.include?('--sync-valuation-history')
+  valuation_years = (ARGV.find { |x| x.start_with?('--valuation-years=') } || '').split('=', 2)[1].to_i
+  valuation_years = 10 if valuation_years <= 0
+  valuation_force = ARGV.include?('--valuation-force')
+  StockSyncService.new(incremental: incremental, force: force, force_pull: force_pull, backfill_cn10y: backfill_cn10y, add_csi500: add_csi500, add_a500: add_a500, add_dividend_etf_constituents: add_dividend_etf_constituents, fill_categories: fill_categories, sync_valuation_history: sync_valuation_history, valuation_years: valuation_years, valuation_force: valuation_force).run
 end
