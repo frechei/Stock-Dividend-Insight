@@ -5,9 +5,6 @@
                 <svg class="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 股票概览列表 (<%= @total_count %>)
             </h2>
-            <div class="text-sm text-gray-500">
-                多字段排序
-            </div>
         </div>
 
         <div class="flex flex-wrap items-center gap-3 text-sm text-gray-600">
@@ -32,99 +29,6 @@
         <% base_params[:exclude_pe_levels] = @exclude_pe_levels unless @exclude_pe_levels.empty? %>
         <% base_params[:include_pe_percentile_levels] = @include_pe_percentile_levels unless @include_pe_percentile_levels.empty? %>
         <% base_params[:exclude_pe_percentile_levels] = @exclude_pe_percentile_levels unless @exclude_pe_percentile_levels.empty? %>
-
-        <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
-            <% @included_categories.each do |cat| %>
-                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
-                    <span class="font-semibold">包含</span>
-                    <span class="ml-1"><%= cat.name %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_include_category_id: cat.id)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
-                </span>
-            <% end %>
-            <% @excluded_categories.each do |cat| %>
-                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
-                    <span class="font-semibold">排除</span>
-                    <span class="ml-1"><%= cat.name %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_exclude_category_id: cat.id)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
-                </span>
-            <% end %>
-            <% @include_pb_levels.each do |lvl| %>
-                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
-                    <span class="font-semibold">包含PB</span>
-                    <span class="ml-1"><%= pb_level_label(lvl) %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_include_pb_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
-                </span>
-            <% end %>
-            <% @exclude_pb_levels.each do |lvl| %>
-                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
-                    <span class="font-semibold">排除PB</span>
-                    <span class="ml-1"><%= pb_level_label(lvl) %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_exclude_pb_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
-                </span>
-            <% end %>
-            <% @include_pb_percentile_levels.each do |lvl| %>
-                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
-                    <span class="font-semibold">包含PB分位</span>
-                    <span class="ml-1"><%= pb_percentile_level_label(lvl) %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_include_pb_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
-                </span>
-            <% end %>
-            <% @exclude_pb_percentile_levels.each do |lvl| %>
-                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
-                    <span class="font-semibold">排除PB分位</span>
-                    <span class="ml-1"><%= pb_percentile_level_label(lvl) %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_exclude_pb_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
-                </span>
-            <% end %>
-            <% @include_pe_levels.each do |lvl| %>
-                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
-                    <span class="font-semibold">包含PE</span>
-                    <span class="ml-1"><%= pe_level_label(lvl) %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_include_pe_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
-                </span>
-            <% end %>
-            <% @exclude_pe_levels.each do |lvl| %>
-                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
-                    <span class="font-semibold">排除PE</span>
-                    <span class="ml-1"><%= pe_level_label(lvl) %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_exclude_pe_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
-                </span>
-            <% end %>
-            <% @include_pe_percentile_levels.each do |lvl| %>
-                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
-                    <span class="font-semibold">包含PE分位</span>
-                    <span class="ml-1"><%= pe_percentile_level_label(lvl) %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_include_pe_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
-                </span>
-            <% end %>
-            <% @exclude_pe_percentile_levels.each do |lvl| %>
-                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
-                    <span class="font-semibold">排除PE分位</span>
-                    <span class="ml-1"><%= pe_percentile_level_label(lvl) %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_exclude_pe_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
-                </span>
-            <% end %>
-            <% if @only_div5y %>
-                <span class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded-full border border-green-100">
-                    <span class="font-semibold">连续5年分红</span>
-                    <a href="/?<%= build_query(base_params.merge(only_div5y: nil)) %>" class="ml-2 text-green-600 hover:text-green-900">×</a>
-                </span>
-            <% end %>
-        </div>
-
-        <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
-            <div id="activeSorts" class="flex flex-wrap items-center gap-2" data-empty-label="未设置排序">
-                <% @sorts.each_with_index do |s, idx| %>
-                    <span class="active-sort inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100 cursor-move select-none" draggable="true" data-field="<%= s[:field] %>" data-order="<%= s[:order] %>">
-                        <span class="sort-index text-blue-400 mr-1"><%= (idx + 1).to_s %>.</span>
-                        <span class="font-semibold"><%= sort_label(s[:field]) %></span>
-                        <button type="button" class="sort-toggle ml-2 text-blue-600 hover:text-blue-900"><%= s[:order] == 'desc' ? '↓' : '↑' %></button>
-                        <button type="button" class="sort-remove ml-2 text-blue-600 hover:text-blue-900">×</button>
-                    </span>
-                <% end %>
-            </div>
-            <a href="/?clear_sorts=1" class="ml-2 text-blue-600 hover:underline">清空排序</a>
-        </div>
 
         <form id="filterForm" method="get" action="/" class="mt-4">
             <input type="hidden" id="sortInput" name="sort" value="<%= @sort_param %>">
@@ -279,6 +183,101 @@
             </div>
         </form>
 
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
+        <div id="activeSorts" class="flex flex-wrap items-center gap-2" data-empty-label="未设置排序">
+            <% @sorts.each_with_index do |s, idx| %>
+                <span class="active-sort inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100 cursor-move select-none" draggable="true" data-field="<%= s[:field] %>" data-order="<%= s[:order] %>">
+                    <span class="sort-index text-blue-400 mr-1"><%= (idx + 1).to_s %>.</span>
+                    <span class="font-semibold"><%= sort_label(s[:field]) %></span>
+                    <button type="button" class="sort-toggle ml-2 text-blue-600 hover:text-blue-900"><%= s[:order] == 'desc' ? '↓' : '↑' %></button>
+                    <button type="button" class="sort-remove ml-2 text-blue-600 hover:text-blue-900">×</button>
+                </span>
+            <% end %>
+        </div>
+        <% if @sorts.any? %>
+            <a href="/?clear_sorts=1" class="ml-2 text-blue-600 hover:underline">清空排序</a>
+        <% end %>
+    </div>
+
+    <div class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+        <% @included_categories.each do |cat| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">包含</span>
+                <span class="ml-1"><%= cat.name %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_include_category_id: cat.id)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% @excluded_categories.each do |cat| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">排除</span>
+                <span class="ml-1"><%= cat.name %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_exclude_category_id: cat.id)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% @include_pb_levels.each do |lvl| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">包含PB</span>
+                <span class="ml-1"><%= pb_level_label(lvl) %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_include_pb_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% @exclude_pb_levels.each do |lvl| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">排除PB</span>
+                <span class="ml-1"><%= pb_level_label(lvl) %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_exclude_pb_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% @include_pb_percentile_levels.each do |lvl| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">包含PB分位</span>
+                <span class="ml-1"><%= pb_percentile_level_label(lvl) %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_include_pb_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% @exclude_pb_percentile_levels.each do |lvl| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">排除PB分位</span>
+                <span class="ml-1"><%= pb_percentile_level_label(lvl) %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_exclude_pb_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% @include_pe_levels.each do |lvl| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">包含PE</span>
+                <span class="ml-1"><%= pe_level_label(lvl) %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_include_pe_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% @exclude_pe_levels.each do |lvl| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">排除PE</span>
+                <span class="ml-1"><%= pe_level_label(lvl) %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_exclude_pe_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% @include_pe_percentile_levels.each do |lvl| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">包含PE分位</span>
+                <span class="ml-1"><%= pe_percentile_level_label(lvl) %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_include_pe_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% @exclude_pe_percentile_levels.each do |lvl| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">排除PE分位</span>
+                <span class="ml-1"><%= pe_percentile_level_label(lvl) %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_exclude_pe_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% if @only_div5y %>
+            <span class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded-full border border-green-100">
+                <span class="font-semibold">连续5年分红</span>
+                <a href="/?<%= build_query(base_params.merge(only_div5y: nil)) %>" class="ml-2 text-green-600 hover:text-green-900">×</a>
+            </span>
+        <% end %>
     </div>
 
     <div class="table-container">
