@@ -63,6 +63,8 @@
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-gray-500 text-xs mb-1">市盈率(TTM)</div>
                 <div class="text-base font-semibold text-gray-800"><%= format_decimal(@stock.pe_ttm, 2) %></div>
+                <div class="text-xs text-gray-400 mt-1"><%= pe_level_label(@stock.pe_level) %></div>
+                <div class="text-xs text-gray-400"><%= pe_percentile_level_label(@stock.pe_percentile_level) %></div>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-gray-500 text-xs mb-1">市净率</div>

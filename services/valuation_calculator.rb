@@ -95,6 +95,11 @@ class ValuationCalculator
     stock.pb_percentile = pb_percentile
     stock.pb_percentile_level = pb_percentile_level_for(pb_percentile)
 
+    stock.pe_level = pe_level_for(stock.pe_ttm)
+    pe_percentile = pe_percentile_for(stock)
+    stock.pe_percentile = pe_percentile
+    stock.pe_percentile_level = pe_percentile_level_for(pe_percentile)
+
     stock.save! if stock.changed?
   end
 
@@ -126,6 +131,49 @@ class ValuationCalculator
     return 2 if v < 0.5
     return 3 if v < 0.8
     4
+  end
+
+  def pe_percentile_for(stock)
+    pe = stock.pe_ttm
+    return nil if pe.nil?
+    current = pe.to_f
+    return nil unless current.finite? && current > 0
+
+    from_date = Date.today << 120
+    arr = stock.price_histories.where('date >= ?', from_date).where.not(pe_ttm: nil).pluck(:pe_ttm).map { |x| x.to_f }.select { |x| x.finite? && x > 0 }
+    return nil if arr.size < 20
+
+    sorted = arr.sort
+    idx = sorted.bsearch_index { |x| x >= current } || (sorted.size - 1)
+
+    if sorted.size <= 1
+      0.5
+    else
+      (idx.to_f / (sorted.size - 1).to_f)
+    end
+  end
+
+  def pe_percentile_level_for(p)
+    return nil if p.nil?
+    v = p.to_f
+    return nil unless v.finite?
+    return 1 if v < 0.3
+    return 2 if v < 0.7
+    3
+  end
+
+  def pe_level_for(pe_ttm)
+    return nil if pe_ttm.nil?
+    v = pe_ttm.to_f
+    return nil unless v.finite?
+
+    return 1 if v < 0
+    return 2 if v < 10
+    return 3 if v < 20
+    return 4 if v < 30
+    return 5 if v < 50
+    return 6 if v < 100
+    7
   end
 
   def pb_level_for(pb)

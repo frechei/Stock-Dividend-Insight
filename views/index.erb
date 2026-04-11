@@ -1,9 +1,9 @@
-<div class="bg-white rounded-lg shadow-md p-6">
+<div class="bg-white rounded-lg shadow-md p-6 text-sm">
     <div class="mb-6 border-b border-gray-100 pb-4">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold text-gray-800 flex items-center">
                 <svg class="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                股票概览列表 (<%= @stocks.count %>)
+                股票概览列表 (<%= @total_count %>)
             </h2>
             <div class="text-sm text-gray-500">
                 多字段排序
@@ -28,15 +28,12 @@
         <% base_params[:exclude_pb_levels] = @exclude_pb_levels unless @exclude_pb_levels.empty? %>
         <% base_params[:include_pb_percentile_levels] = @include_pb_percentile_levels unless @include_pb_percentile_levels.empty? %>
         <% base_params[:exclude_pb_percentile_levels] = @exclude_pb_percentile_levels unless @exclude_pb_percentile_levels.empty? %>
+        <% base_params[:include_pe_levels] = @include_pe_levels unless @include_pe_levels.empty? %>
+        <% base_params[:exclude_pe_levels] = @exclude_pe_levels unless @exclude_pe_levels.empty? %>
+        <% base_params[:include_pe_percentile_levels] = @include_pe_percentile_levels unless @include_pe_percentile_levels.empty? %>
+        <% base_params[:exclude_pe_percentile_levels] = @exclude_pe_percentile_levels unless @exclude_pe_percentile_levels.empty? %>
+
         <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
-            <span class="text-gray-600 font-medium mr-1">当前条件:</span>
-            <% @sorts.each do |s| %>
-                <span class="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
-                    <span class="font-semibold"><%= sort_label(s[:field]) %></span>
-                    <span class="ml-1"><%= s[:order] == 'desc' ? '↓' : '↑' %></span>
-                    <a href="/?<%= build_query(base_params.merge(remove_sort: s[:field])) %>" class="ml-2 text-blue-500 hover:text-blue-800">×</a>
-                </span>
-            <% end %>
             <% @included_categories.each do |cat| %>
                 <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
                     <span class="font-semibold">包含</span>
@@ -79,22 +76,65 @@
                     <a href="/?<%= build_query(base_params.merge(remove_exclude_pb_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
                 </span>
             <% end %>
+            <% @include_pe_levels.each do |lvl| %>
+                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                    <span class="font-semibold">包含PE</span>
+                    <span class="ml-1"><%= pe_level_label(lvl) %></span>
+                    <a href="/?<%= build_query(base_params.merge(remove_include_pe_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+                </span>
+            <% end %>
+            <% @exclude_pe_levels.each do |lvl| %>
+                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                    <span class="font-semibold">排除PE</span>
+                    <span class="ml-1"><%= pe_level_label(lvl) %></span>
+                    <a href="/?<%= build_query(base_params.merge(remove_exclude_pe_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+                </span>
+            <% end %>
+            <% @include_pe_percentile_levels.each do |lvl| %>
+                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                    <span class="font-semibold">包含PE分位</span>
+                    <span class="ml-1"><%= pe_percentile_level_label(lvl) %></span>
+                    <a href="/?<%= build_query(base_params.merge(remove_include_pe_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+                </span>
+            <% end %>
+            <% @exclude_pe_percentile_levels.each do |lvl| %>
+                <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                    <span class="font-semibold">排除PE分位</span>
+                    <span class="ml-1"><%= pe_percentile_level_label(lvl) %></span>
+                    <a href="/?<%= build_query(base_params.merge(remove_exclude_pe_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+                </span>
+            <% end %>
             <% if @only_div5y %>
                 <span class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded-full border border-green-100">
                     <span class="font-semibold">连续5年分红</span>
                     <a href="/?<%= build_query(base_params.merge(only_div5y: nil)) %>" class="ml-2 text-green-600 hover:text-green-900">×</a>
                 </span>
             <% end %>
-            <a href="/?<%= build_query(base_params.merge(clear_sorts: '1')) %>" class="ml-2 text-blue-600 hover:underline">清空排序</a>
-            <a href="/" class="text-blue-600 hover:underline">清空全部</a>
         </div>
-        
-        <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
-            <form method="get" action="/" class="flex flex-wrap items-center gap-3">
-                <input type="hidden" name="sort" value="<%= @sort_param %>">
-                <% if @only_div5y %>
-                    <input type="hidden" name="only_div5y" value="1">
+
+        <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
+            <div id="activeSorts" class="flex flex-wrap items-center gap-2" data-empty-label="未设置排序">
+                <% @sorts.each_with_index do |s, idx| %>
+                    <span class="active-sort inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100 cursor-move select-none" draggable="true" data-field="<%= s[:field] %>" data-order="<%= s[:order] %>">
+                        <span class="sort-index text-blue-400 mr-1"><%= (idx + 1).to_s %>.</span>
+                        <span class="font-semibold"><%= sort_label(s[:field]) %></span>
+                        <button type="button" class="sort-toggle ml-2 text-blue-600 hover:text-blue-900"><%= s[:order] == 'desc' ? '↓' : '↑' %></button>
+                        <button type="button" class="sort-remove ml-2 text-blue-600 hover:text-blue-900">×</button>
+                    </span>
                 <% end %>
+            </div>
+            <a href="/?clear_sorts=1" class="ml-2 text-blue-600 hover:underline">清空排序</a>
+        </div>
+
+        <form id="filterForm" method="get" action="/" class="mt-4">
+            <input type="hidden" id="sortInput" name="sort" value="<%= @sort_param %>">
+
+            <div class="mt-4 text-sm text-gray-600 font-medium">过滤</div>
+            <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                <label class="flex items-center gap-2 px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer">
+                    <input type="checkbox" name="only_div5y" value="1" <%= @only_div5y ? 'checked' : '' %>>
+                    <span>仅显示连续5年分红</span>
+                </label>
 
                 <details class="relative">
                     <summary class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer select-none">包含分类 (<%= @include_category_ids.size %>)</summary>
@@ -168,35 +208,94 @@
                     </div>
                 </details>
 
-                <button type="submit" class="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">应用</button>
-                <a href="/?<%= build_query({ sort: @sort_param, only_div5y: (@only_div5y ? '1' : nil) }) %>" class="text-blue-600 hover:underline">清空过滤</a>
-            </form>
+                <details class="relative">
+                    <summary class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer select-none">包含PE等级 (<%= @include_pe_levels.size %>)</summary>
+                    <div class="absolute z-10 mt-2 w-64 max-h-72 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
+                        <% (1..7).each do |lvl| %>
+                            <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="include_pe_levels[]" value="<%= lvl %>" <%= @include_pe_levels.include?(lvl) ? 'checked' : '' %>>
+                                <span><%= pe_level_label(lvl) %></span>
+                            </label>
+                        <% end %>
+                    </div>
+                </details>
 
-            <% if @only_div5y %>
-                <a href="/?<%= build_query(base_params.merge(only_div5y: nil)) %>" class="px-3 py-1 rounded bg-green-600 text-white">仅5年分红✓</a>
-            <% else %>
-                <a href="/?<%= build_query(base_params.merge(only_div5y: '1')) %>" class="px-3 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200">仅显示连续5年分红</a>
-            <% end %>
-        </div>
+                <details class="relative">
+                    <summary class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer select-none">排除PE等级 (<%= @exclude_pe_levels.size %>)</summary>
+                    <div class="absolute z-10 mt-2 w-64 max-h-72 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
+                        <% (1..7).each do |lvl| %>
+                            <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="exclude_pe_levels[]" value="<%= lvl %>" <%= @exclude_pe_levels.include?(lvl) ? 'checked' : '' %>>
+                                <span><%= pe_level_label(lvl) %></span>
+                            </label>
+                        <% end %>
+                    </div>
+                </details>
+
+                <details class="relative">
+                    <summary class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer select-none">包含PE分位 (<%= @include_pe_percentile_levels.size %>)</summary>
+                    <div class="absolute z-10 mt-2 w-64 max-h-72 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
+                        <% (1..3).each do |lvl| %>
+                            <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="include_pe_percentile_levels[]" value="<%= lvl %>" <%= @include_pe_percentile_levels.include?(lvl) ? 'checked' : '' %>>
+                                <span><%= pe_percentile_level_label(lvl) %></span>
+                            </label>
+                        <% end %>
+                    </div>
+                </details>
+
+                <details class="relative">
+                    <summary class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer select-none">排除PE分位 (<%= @exclude_pe_percentile_levels.size %>)</summary>
+                    <div class="absolute z-10 mt-2 w-64 max-h-72 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
+                        <% (1..3).each do |lvl| %>
+                            <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="exclude_pe_percentile_levels[]" value="<%= lvl %>" <%= @exclude_pe_percentile_levels.include?(lvl) ? 'checked' : '' %>>
+                                <span><%= pe_percentile_level_label(lvl) %></span>
+                            </label>
+                        <% end %>
+                    </div>
+                </details>
+
+            </div>
+
+            <div class="mt-4 text-sm text-gray-600 font-medium">排序</div>
+            <div id="sortPalette" class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                <% current_sort_by_field = @sorts.to_h { |s| [s[:field], s[:order]] } %>
+                <% @allowed_sort_fields.each do |f| %>
+                    <% active_order = current_sort_by_field[f] %>
+                    <span class="sort-palette-item inline-flex items-center px-2 py-1 rounded-full border <%= active_order ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white text-gray-700 border-gray-200' %>" data-field="<%= f %>" data-label="<%= sort_label(f) %>">
+                        <span class="<%= active_order ? 'font-semibold' : '' %>"><%= sort_label(f) %></span>
+                        <div class="flex items-center ml-2 gap-1">
+                            <button type="button" class="sort-add px-2 py-0.5 rounded <%= active_order == 'asc' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>" data-field="<%= f %>" data-order="asc" data-label="<%= sort_label(f) %>">↑</button>
+                            <button type="button" class="sort-add px-2 py-0.5 rounded <%= active_order == 'desc' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>" data-field="<%= f %>" data-order="desc" data-label="<%= sort_label(f) %>">↓</button>
+                        </div>
+                    </span>
+                <% end %>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                <a href="/?<%= build_query({ sort: @sort_param }) %>" class="text-blue-600 hover:underline text-sm">清空过滤</a>
+                <a href="/" class="text-blue-600 hover:underline text-sm">清空全部</a>
+            </div>
+        </form>
+
     </div>
 
     <div class="table-container">
-        <table class="w-full text-left border-collapse">
+        <table class="w-full text-left border-collapse text-xs">
             <thead>
-                <tr class="bg-gray-50 text-gray-700 text-sm uppercase tracking-wider">
-                    <th class="p-3 border-b border-gray-200 sticky left-0 bg-gray-50"><%= sort_link('name', '股票名称') %></th>
+                <tr class="bg-gray-50 text-gray-700 text-xs uppercase tracking-wider">
+                    <th class="p-3 border-b border-gray-200 sticky left-0 bg-gray-50">股票名称</th>
                     <th class="p-3 border-b border-gray-200">分类</th>
-                    <th class="p-3 border-b border-gray-200"><%= sort_link('code', '代码') %></th>
                     <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('current_price', '最新价') %></th>
                     <th class="p-3 border-b border-gray-200 text-right font-bold"><%= sort_link('expected_dividend_yield', '预期股息率') %></th>
                     <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('dividend_yield', '历史股息率') %></th>
-                    <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('turnover_rate', '换手率') %></th>
-                    <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('volume', '成交量') %></th>
                     <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('pe_ttm', 'PE(TTM)') %></th>
+                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pe_level', 'PE等级') %></th>
+                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pe_percentile', 'PE分位') %></th>
                     <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('pb', 'PB') %></th>
                     <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pb_level', 'PB等级') %></th>
                     <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pb_percentile', 'PB分位') %></th>
-                    <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('total_shares', '总股本') %></th>
                     <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_30d', '30d位置') %></th>
                     <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_1y', '1y位置') %></th>
                     <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_3y', '3y位置') %></th>
@@ -211,6 +310,7 @@
                             <a href="/stocks/<%= stock.id %>" class="text-blue-600 hover:text-blue-800 hover:underline">
                                 <%= stock.name %>
                             </a>
+                            <div class="text-xs text-gray-400 font-mono"><%= stock.code %></div>
                         </td>
                         <td class="p-3">
                             <div class="flex flex-wrap gap-1">
@@ -219,23 +319,25 @@
                                 <% end %>
                             </div>
                         </td>
-                        <td class="p-3 font-mono text-xs"><%= stock.code %></td>
                         <td class="p-3 text-right"><%= format_decimal(stock.current_price, 2) %></td>
                         <td class="p-3 text-right font-bold text-blue-700"><%= format_percent(stock.expected_dividend_yield) %></td>
                         <td class="p-3 text-right"><%= format_percent(stock.dividend_yield) %></td>
-                        <td class="p-3 text-right"><%= format_percent(stock.turnover_rate) %></td>
-                        <td class="p-3 text-right"><%= format_volume(stock.volume) %></td>
                         <td class="p-3 text-right"><%= format_decimal(stock.pe_ttm, 2) %></td>
+                        <td class="p-3 text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= pe_level_badge_class(stock.pe_level) %> font-semibold"><%= pe_level_label(stock.pe_level) %></span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <div><%= pe_percentile_level_label(stock.pe_percentile_level) %></div>
+                            <div class="text-xs text-gray-400"><%= format_ratio_percent(stock.pe_percentile) %></div>
+                        </td>
                         <td class="p-3 text-right"><%= format_decimal(stock.pb, 2) %></td>
                         <td class="p-3 text-center">
-                            <div><%= pb_level_label(stock.pb_level) %></div>
-                            <div class="text-xs text-gray-400"><%= stock.pb_level || '-' %></div>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= pb_level_badge_class(stock.pb_level) %> font-semibold"><%= pb_level_label(stock.pb_level) %></span>
                         </td>
                         <td class="p-3 text-center">
                             <div><%= pb_percentile_level_label(stock.pb_percentile_level) %></div>
                             <div class="text-xs text-gray-400"><%= format_ratio_percent(stock.pb_percentile) %></div>
                         </td>
-                        <td class="p-3 text-right"><%= format_shares(stock.total_shares) %></td>
                         
                         <td class="p-3 text-center <%= position_color(stock.pos_30d) %>">
                             <%= format_decimal(stock.pos_30d, 2) %>
@@ -258,6 +360,217 @@
         </table>
     </div>
 </div>
+
+<div class="mt-4 flex items-center justify-between text-sm">
+    <div class="text-gray-600">第 <%= @page %> / <%= @total_pages %> 页</div>
+    <div class="flex items-center gap-2">
+        <% prev_page = @page > 1 ? (@page - 1) : nil %>
+        <% next_page = @page < @total_pages ? (@page + 1) : nil %>
+        <% page_params = base_params.dup %>
+        <% page_params.delete(:clear_sorts) %>
+        <% page_params.delete(:remove_sort) %>
+        <% page_params.delete(:remove_include_category_id) %>
+        <% page_params.delete(:remove_exclude_category_id) %>
+        <% page_params.delete(:remove_include_pb_level) %>
+        <% page_params.delete(:remove_exclude_pb_level) %>
+        <% page_params.delete(:remove_include_pb_percentile_level) %>
+        <% page_params.delete(:remove_exclude_pb_percentile_level) %>
+        <% page_params.delete(:remove_include_pe_level) %>
+        <% page_params.delete(:remove_exclude_pe_level) %>
+        <% page_params.delete(:remove_include_pe_percentile_level) %>
+        <% page_params.delete(:remove_exclude_pe_percentile_level) %>
+
+        <% if prev_page %>
+            <a class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200" href="/?<%= build_query(page_params.merge(page: prev_page)) %>">上一页</a>
+        <% else %>
+            <span class="px-3 py-1 rounded bg-gray-50 text-gray-400">上一页</span>
+        <% end %>
+        <% if next_page %>
+            <a class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200" href="/?<%= build_query(page_params.merge(page: next_page)) %>">下一页</a>
+        <% else %>
+            <span class="px-3 py-1 rounded bg-gray-50 text-gray-400">下一页</span>
+        <% end %>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const activeSorts = document.getElementById('activeSorts');
+        const palette = document.getElementById('sortPalette');
+        const sortInput = document.getElementById('sortInput');
+        const filterForm = document.getElementById('filterForm');
+        if (!activeSorts || !palette || !sortInput || !filterForm) return;
+
+        function getSortsFromDom() {
+            return Array.from(activeSorts.querySelectorAll('.active-sort')).map((el) => ({
+                field: el.dataset.field,
+                order: el.dataset.order
+            }));
+        }
+
+        function serializeSorts(sorts) {
+            return (sorts || []).map((s) => `${s.field}:${s.order}`).join(',');
+        }
+
+        function setSortInputFromDom() {
+            sortInput.value = serializeSorts(getSortsFromDom());
+        }
+
+        function submitForm() {
+            if (typeof filterForm.requestSubmit === 'function') {
+                filterForm.requestSubmit();
+            } else {
+                filterForm.submit();
+            }
+        }
+
+        function refreshSortIndices() {
+            Array.from(activeSorts.querySelectorAll('.active-sort')).forEach((el, idx) => {
+                const indexEl = el.querySelector('.sort-index');
+                if (indexEl) indexEl.textContent = `${idx + 1}.`;
+            });
+        }
+
+        function refreshPaletteState() {
+            const byField = new Map(getSortsFromDom().map((s) => [s.field, s.order]));
+            Array.from(palette.querySelectorAll('.sort-palette-item')).forEach((item) => {
+                const field = item.dataset.field;
+                const order = byField.get(field);
+
+                if (order) {
+                    item.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
+                    item.classList.remove('bg-white', 'text-gray-700', 'border-gray-200');
+                    const nameEl = item.querySelector('span');
+                    if (nameEl) nameEl.classList.add('font-semibold');
+                } else {
+                    item.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-200');
+                    item.classList.add('bg-white', 'text-gray-700', 'border-gray-200');
+                    const nameEl = item.querySelector('span');
+                    if (nameEl) nameEl.classList.remove('font-semibold');
+                }
+
+                const ascBtn = item.querySelector('.sort-add[data-order="asc"]');
+                const descBtn = item.querySelector('.sort-add[data-order="desc"]');
+                [ascBtn, descBtn].forEach((btn) => {
+                    if (!btn) return;
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                });
+                if (order === 'asc' && ascBtn) {
+                    ascBtn.classList.add('bg-blue-600', 'text-white');
+                    ascBtn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                }
+                if (order === 'desc' && descBtn) {
+                    descBtn.classList.add('bg-blue-600', 'text-white');
+                    descBtn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                }
+            });
+        }
+
+        function syncSortUi() {
+            refreshSortIndices();
+            setSortInputFromDom();
+            refreshPaletteState();
+        }
+
+        function buildActiveSortChip(field, label, order) {
+            const span = document.createElement('span');
+            span.className = 'active-sort inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100 cursor-move select-none';
+            span.draggable = true;
+            span.dataset.field = field;
+            span.dataset.order = order;
+            span.innerHTML = `
+                <span class="sort-index text-blue-400 mr-1"></span>
+                <span class="font-semibold"></span>
+                <button type="button" class="sort-toggle ml-2 text-blue-600 hover:text-blue-900"></button>
+                <button type="button" class="sort-remove ml-2 text-blue-600 hover:text-blue-900">×</button>
+            `;
+            span.querySelector('.font-semibold').textContent = label || field;
+            span.querySelector('.sort-toggle').textContent = order === 'desc' ? '↓' : '↑';
+            return span;
+        }
+
+        palette.addEventListener('click', (e) => {
+            const btn = e.target.closest('.sort-add');
+            if (!btn) return;
+            const field = btn.dataset.field;
+            const order = btn.dataset.order;
+            const label = btn.dataset.label || field;
+            if (!field || !order) return;
+
+            const existing = activeSorts.querySelector(`.active-sort[data-field="${CSS.escape(field)}"]`);
+            if (existing) {
+                existing.dataset.order = order;
+                const toggle = existing.querySelector('.sort-toggle');
+                if (toggle) toggle.textContent = order === 'desc' ? '↓' : '↑';
+            } else {
+                activeSorts.appendChild(buildActiveSortChip(field, label, order));
+            }
+            syncSortUi();
+            submitForm();
+        });
+
+        activeSorts.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.sort-remove');
+            if (removeBtn) {
+                const chip = removeBtn.closest('.active-sort');
+                if (chip) chip.remove();
+                syncSortUi();
+                submitForm();
+                return;
+            }
+
+            const toggleBtn = e.target.closest('.sort-toggle');
+            if (toggleBtn) {
+                const chip = toggleBtn.closest('.active-sort');
+                if (!chip) return;
+                chip.dataset.order = chip.dataset.order === 'desc' ? 'asc' : 'desc';
+                toggleBtn.textContent = chip.dataset.order === 'desc' ? '↓' : '↑';
+                syncSortUi();
+                submitForm();
+            }
+        });
+
+        let dragging = null;
+
+        activeSorts.addEventListener('dragstart', (e) => {
+            const el = e.target.closest('.active-sort');
+            if (!el) return;
+            dragging = el;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', el.dataset.field || '');
+        });
+
+        activeSorts.addEventListener('dragover', (e) => {
+            if (!dragging) return;
+            e.preventDefault();
+            const target = e.target.closest('.active-sort');
+            if (!target || target === dragging) return;
+            const rect = target.getBoundingClientRect();
+            const before = e.clientX < rect.left + rect.width / 2;
+            if (before) {
+                activeSorts.insertBefore(dragging, target);
+            } else {
+                activeSorts.insertBefore(dragging, target.nextSibling);
+            }
+        });
+
+        activeSorts.addEventListener('dragend', () => {
+            if (!dragging) return;
+            dragging = null;
+            syncSortUi();
+            submitForm();
+        });
+
+        filterForm.addEventListener('change', (e) => {
+            const t = e.target;
+            if (t && t.id === 'sortInput') return;
+            submitForm();
+        });
+
+        syncSortUi();
+    })();
+</script>
 
 <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="bg-blue-50 p-6 rounded-lg border border-blue-100">
