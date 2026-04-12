@@ -7,8 +7,10 @@ class ValuationCalculator
   end
 
   def calculate_for_stock(stock)
-    latest_price = stock.current_price || stock.price_histories.order(date: :desc).first&.close
+    latest_history = stock.price_histories.order(date: :desc).first
+    latest_price = stock.current_price || latest_history&.close
     return if latest_price.nil? || latest_price == 0
+    base_date = latest_history&.date
 
     # 1. 预期股息率
     one_year_ago = Date.today - 365
@@ -36,15 +38,11 @@ class ValuationCalculator
     stock.has_dividend_5y = all_years_have_dividend
 
     # 3. 价格位置
-    max_price = stock.price_histories.maximum(:high)
-    min_price = stock.price_histories.minimum(:low)
-    if max_price && min_price
-      if max_price > min_price
-        pos = (latest_price - min_price) / (max_price - min_price)
-        stock.price_position = [[pos.to_f, 0.0].max, 1.0].min
-      else
-        stock.price_position = 0.5
-      end
+    if base_date
+      from_date = base_date << 120
+      closes = stock.price_histories.where('date >= ?', from_date).where.not(close: nil).pluck(:close)
+      stock.price_position = percentile_for(latest_price, closes)
+      update_rolling_price_metrics(stock, base_date, latest_price)
     end
 
     # 4. 股息率位置
@@ -101,6 +99,43 @@ class ValuationCalculator
     stock.pe_percentile_level = pe_percentile_level_for(pe_percentile)
 
     stock.save! if stock.changed?
+  end
+
+  def update_rolling_price_metrics(stock, base_date, base_price)
+    update_window(stock, '30d', 30, base_date, base_price)
+    update_window(stock, '1y', 365, base_date, base_price)
+    update_window(stock, '3y', 1095, base_date, base_price)
+    update_window(stock, '5y', 1825, base_date, base_price)
+  end
+
+  def update_window(stock, suffix, days, base_date, base_price)
+    start_date = base_date - days
+    scope = stock.price_histories.where('date >= ? AND date <= ?', start_date, base_date)
+
+    high = scope.maximum(:high)
+    low = scope.minimum(:low)
+    if high && low
+      stock.send("high_#{suffix}=", high)
+      stock.send("low_#{suffix}=", low)
+    end
+
+    closes = scope.where.not(close: nil).pluck(:close)
+    stock.send("pos_#{suffix}=", percentile_for(base_price, closes))
+  end
+
+  def percentile_for(current, arr)
+    return nil if current.nil?
+    c = current.to_f
+    return nil unless c.finite? && c > 0
+
+    values = Array(arr).map { |x| x.to_f }.select { |x| x.finite? && x > 0 }
+    return nil if values.empty?
+    return 0.5 if values.size <= 1
+
+    sorted = values.sort
+    idx = sorted.bsearch_index { |x| x >= c } || (sorted.size - 1)
+    p = idx.to_f / (sorted.size - 1).to_f
+    [[p, 0.0].max, 1.0].min
   end
 
   def pb_percentile_for(stock)

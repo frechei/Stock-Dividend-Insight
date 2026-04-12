@@ -35,12 +35,23 @@ class PriceMetricsCalculator
       stock.send("high_#{suffix}=", high)
       stock.send("low_#{suffix}=", low)
 
-      if high > low
-        pos = (base_price - low) / (high - low)
-        stock.send("pos_#{suffix}=", [[pos.to_f, 0.0].max, 1.0].min)
-      else
-        stock.send("pos_#{suffix}=", 0.5)
-      end
+      closes = scope.where.not(close: nil).pluck(:close).map { |x| x.to_f }.select { |x| x.finite? && x > 0 }
+      stock.send("pos_#{suffix}=", percentile_for(base_price.to_f, closes))
     end
+  end
+
+  def self.percentile_for(current, arr)
+    return nil if current.nil?
+    c = current.to_f
+    return nil unless c.finite? && c > 0
+
+    values = Array(arr).map { |x| x.to_f }.select { |x| x.finite? && x > 0 }
+    return nil if values.empty?
+    return 0.5 if values.size <= 1
+
+    sorted = values.sort
+    idx = sorted.bsearch_index { |x| x >= c } || (sorted.size - 1)
+    p = idx.to_f / (sorted.size - 1).to_f
+    [[p, 0.0].max, 1.0].min
   end
 end

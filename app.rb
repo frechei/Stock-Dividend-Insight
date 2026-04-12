@@ -4,13 +4,24 @@ require 'sinatra/reloader' if development?
 require_relative 'models'
 require_relative 'services/valuation_history_syncer'
 
+unless defined?(RoeHistory)
+  class RoeHistory < ActiveRecord::Base
+    self.table_name = 'roe_histories'
+    belongs_to :stock
+  end
+end
+
+unless Stock.respond_to?(:reflect_on_association) && Stock.reflect_on_association(:roe_histories)
+  Stock.has_many :roe_histories, dependent: :destroy
+end
+
 set :bind, '0.0.0.0'
 set :port, 4567
 
 get '/' do
   allowed_sort_fields = %w[
     current_price expected_dividend_yield dividend_yield
-    turnover_rate volume pe_ttm pe_level pe_percentile pb pb_level pb_percentile total_shares
+    turnover_rate volume pe_ttm pe_level pe_percentile pb pb_level pb_percentile roe_jq roe_level total_shares
     pos_30d pos_1y pos_3y pos_5y price_position
   ]
   
@@ -25,6 +36,12 @@ get '/' do
   exclude_pe_levels = parse_id_list(params[:exclude_pe_levels]).select { |x| x >= 1 && x <= 7 }
   include_pe_percentile_levels = parse_id_list(params[:include_pe_percentile_levels]).select { |x| x >= 1 && x <= 3 }
   exclude_pe_percentile_levels = parse_id_list(params[:exclude_pe_percentile_levels]).select { |x| x >= 1 && x <= 3 }
+  roe_5y_avg_ge_12 = params[:roe_5y_avg_ge_12].to_s == '1'
+  roe_5y_min_ge_8 = params[:roe_5y_min_ge_8].to_s == '1'
+  roe_min = nil
+  roe_max = nil
+  include_roe_levels = parse_id_list(params[:include_roe_levels]).select { |x| x >= 1 && x <= 3 }
+  exclude_roe_levels = parse_id_list(params[:exclude_roe_levels]).select { |x| x >= 1 && x <= 3 }
 
   sorts = parse_sorts_param(params[:sort], allowed_sort_fields)
 
@@ -41,6 +58,8 @@ get '/' do
 
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -51,6 +70,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -72,6 +95,8 @@ get '/' do
 
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -82,6 +107,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -89,8 +118,14 @@ get '/' do
     include_category_ids = include_category_ids.reject { |x| x == remove_include.to_i }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -98,6 +133,8 @@ get '/' do
     exclude_category_ids = exclude_category_ids.reject { |x| x == remove_exclude.to_i }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -108,6 +145,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -115,6 +156,8 @@ get '/' do
     include_pb_levels = include_pb_levels.reject { |x| x == remove_include.to_i }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -125,6 +168,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -132,6 +179,8 @@ get '/' do
     exclude_pb_levels = exclude_pb_levels.reject { |x| x == remove_exclude.to_i }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -142,6 +191,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -149,6 +202,8 @@ get '/' do
     include_pb_percentile_levels = include_pb_percentile_levels.reject { |x| x == remove_include.to_i }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -159,6 +214,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -166,6 +225,8 @@ get '/' do
     exclude_pb_percentile_levels = exclude_pb_percentile_levels.reject { |x| x == remove_exclude.to_i }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -176,6 +237,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -183,6 +248,8 @@ get '/' do
     include_pe_levels = include_pe_levels.reject { |x| x == remove_include.to_i }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -193,6 +260,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -200,6 +271,8 @@ get '/' do
     exclude_pe_levels = exclude_pe_levels.reject { |x| x == remove_exclude.to_i }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -210,6 +283,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -217,6 +294,8 @@ get '/' do
     include_pe_percentile_levels = include_pe_percentile_levels.reject { |x| x == remove_include.to_i }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -227,6 +306,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -234,6 +317,8 @@ get '/' do
     exclude_pe_percentile_levels = exclude_pe_percentile_levels.reject { |x| x == remove_exclude.to_i }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -244,6 +329,10 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
 
@@ -251,6 +340,8 @@ get '/' do
     sorts = sorts.reject { |s| s[:field] == remove_sort }
     query_params = { sort: serialize_sorts_param(sorts) }
     query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
     query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
     query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
     query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
@@ -261,6 +352,54 @@ get '/' do
     query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
     query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
+    redirect "/?#{Rack::Utils.build_query(query_params)}"
+  end
+  if (remove_include = params[:remove_include_roe_level].to_s.strip).size > 0
+    include_roe_levels = include_roe_levels.reject { |x| x == remove_include.to_i }
+    query_params = { sort: serialize_sorts_param(sorts) }
+    query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
+    query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
+    query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
+    query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
+    query_params[:exclude_pb_levels] = exclude_pb_levels unless exclude_pb_levels.empty?
+    query_params[:include_pb_percentile_levels] = include_pb_percentile_levels unless include_pb_percentile_levels.empty?
+    query_params[:exclude_pb_percentile_levels] = exclude_pb_percentile_levels unless exclude_pb_percentile_levels.empty?
+    query_params[:include_pe_levels] = include_pe_levels unless include_pe_levels.empty?
+    query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
+    query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
+    query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
+    redirect "/?#{Rack::Utils.build_query(query_params)}"
+  end
+  if (remove_exclude = params[:remove_exclude_roe_level].to_s.strip).size > 0
+    exclude_roe_levels = exclude_roe_levels.reject { |x| x == remove_exclude.to_i }
+    query_params = { sort: serialize_sorts_param(sorts) }
+    query_params[:only_div5y] = '1' if only_div5y
+    query_params[:roe_5y_avg_ge_12] = '1' if roe_5y_avg_ge_12
+    query_params[:roe_5y_min_ge_8] = '1' if roe_5y_min_ge_8
+    query_params[:include_category_ids] = include_category_ids unless include_category_ids.empty?
+    query_params[:exclude_category_ids] = exclude_category_ids unless exclude_category_ids.empty?
+    query_params[:include_pb_levels] = include_pb_levels unless include_pb_levels.empty?
+    query_params[:exclude_pb_levels] = exclude_pb_levels unless exclude_pb_levels.empty?
+    query_params[:include_pb_percentile_levels] = include_pb_percentile_levels unless include_pb_percentile_levels.empty?
+    query_params[:exclude_pb_percentile_levels] = exclude_pb_percentile_levels unless exclude_pb_percentile_levels.empty?
+    query_params[:include_pe_levels] = include_pe_levels unless include_pe_levels.empty?
+    query_params[:exclude_pe_levels] = exclude_pe_levels unless exclude_pe_levels.empty?
+    query_params[:include_pe_percentile_levels] = include_pe_percentile_levels unless include_pe_percentile_levels.empty?
+    query_params[:exclude_pe_percentile_levels] = exclude_pe_percentile_levels unless exclude_pe_percentile_levels.empty?
+    query_params[:include_roe_levels] = include_roe_levels unless include_roe_levels.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_levels unless exclude_roe_levels.empty?
+    query_params[:roe_min] = roe_min if roe_min
+    query_params[:roe_max] = roe_max if roe_max
     redirect "/?#{Rack::Utils.build_query(query_params)}"
   end
   if params[:clear_sorts].to_s == '1'
@@ -270,6 +409,18 @@ get '/' do
   base_scope = Stock.includes(:categories)
   if only_div5y
     base_scope = base_scope.where(has_dividend_5y: true)
+  end
+  if roe_5y_avg_ge_12
+    base_scope = base_scope.where(roe_5y_avg_ge_12: true)
+  end
+  if roe_5y_min_ge_8
+    base_scope = base_scope.where(roe_5y_min_ge_8: true)
+  end
+  if include_roe_levels.any?
+    base_scope = base_scope.where(roe_level: include_roe_levels)
+  end
+  if exclude_roe_levels.any?
+    base_scope = base_scope.where.not(roe_level: exclude_roe_levels)
   end
   if include_category_ids.any?
     base_scope = base_scope.joins(:categorizations).where(categorizations: { category_id: include_category_ids }).distinct
@@ -335,10 +486,14 @@ get '/' do
   @exclude_pe_levels = exclude_pe_levels
   @include_pe_percentile_levels = include_pe_percentile_levels
   @exclude_pe_percentile_levels = exclude_pe_percentile_levels
+  @include_roe_levels = include_roe_levels
+  @exclude_roe_levels = exclude_roe_levels
   @allowed_sort_fields = allowed_sort_fields
   @sorts = sorts
   @sort_param = serialize_sorts_param(sorts)
   @only_div5y = only_div5y
+  @roe_5y_avg_ge_12 = roe_5y_avg_ge_12
+  @roe_5y_min_ge_8 = roe_5y_min_ge_8
   @cn_10y = TreasuryYield.where(country: 'CN', tenor: '10Y').order(date: :desc).first
   
   erb :index
@@ -362,6 +517,14 @@ get '/kb/pe' do
   erb :kb_pe
 end
 
+get '/kb/roe' do
+  erb :kb_roe
+end
+
+get '/kb/dividend' do
+  erb :kb_dividend
+end
+
 get '/stocks/:id' do
   @stock = Stock.includes(:categories).find(params[:id])
   from_date = Date.today << 120
@@ -373,6 +536,45 @@ get '/stocks/:id' do
   @price_histories = @stock.price_histories.where('date >= ?', from_date).order(date: :asc)
   # 分红历史，按报告期降序展示
   @dividends = @stock.dividends.order(report_date: :desc)
+  roe_annual_rows =
+    @stock
+      .roe_histories
+      .where(report_type: '年报')
+      .where.not(roe_jq: nil)
+      .order(report_date: :desc)
+      .limit(12)
+
+  latest_year = roe_annual_rows.first&.report_date&.year
+  @roe_5y =
+    if latest_year
+      years = (0..4).map { |i| latest_year - i }
+      by_year = roe_annual_rows.to_a.group_by { |r| r.report_date&.year }
+      years.map { |y| { year: y, row: (by_year[y] && by_year[y].first) } }
+    else
+      []
+    end
+  roe_vals = @roe_5y.map { |x| x[:row]&.roe_jq }.compact.map(&:to_f)
+  if roe_vals.size == 5
+    @roe_5y_avg = roe_vals.sum / roe_vals.size.to_f
+    @roe_5y_min = roe_vals.min
+  else
+    @roe_5y_avg = nil
+    @roe_5y_min = nil
+  end
+
+  annual_div_cash = Hash.new(0.0)
+  @dividends.each do |div|
+    y = div.report_date&.year
+    next unless y
+    annual_div_cash[y] += div.cash_dividend.to_f if div.cash_dividend
+  end
+  @annual_dividends =
+    annual_div_cash
+      .sort_by { |y, _| -y }
+      .take(10)
+      .reverse
+      .map { |y, cash| { year: y, cash: cash } }
+
   @cn_10y = TreasuryYield.where(country: 'CN', tenor: '10Y').order(date: :desc).first
   
   erb :show
@@ -430,13 +632,35 @@ helpers do
       'pb' => 'PB',
       'pb_level' => 'PB等级',
       'pb_percentile' => 'PB历史分位',
+      'roe_jq' => 'ROE(加权)',
+      'roe_level' => 'ROE等级',
       'total_shares' => '总股本',
-      'pos_30d' => '30d位置',
-      'pos_1y' => '1y位置',
-      'pos_3y' => '3y位置',
-      'pos_5y' => '5y位置',
-      'price_position' => '全量位置'
+      'pos_30d' => '30d分位',
+      'pos_1y' => '1y分位',
+      'pos_3y' => '3y分位',
+      'pos_5y' => '5y分位',
+      'price_position' => '全量分位'
     }[field] || field
+  end
+
+  def roe_level_label(level)
+    case level.to_i
+    when 1 then '一般'
+    when 2 then '优秀'
+    when 3 then '非常优秀'
+    else
+      '-'
+    end
+  end
+
+  def roe_level_badge_class(level)
+    case level.to_i
+    when 1 then 'bg-gray-50 text-gray-700 border-gray-200'
+    when 2 then 'bg-green-50 text-green-700 border-green-200'
+    when 3 then 'bg-green-100 text-green-900 border-green-200'
+    else
+      'bg-gray-50 text-gray-500 border-gray-200'
+    end
   end
 
   def format_ratio_percent(value)
@@ -602,6 +826,8 @@ helpers do
 
     query_params = { sort: serialize_sorts_param(next_sorts) }
     query_params[:only_div5y] = '1' if params[:only_div5y].to_s == '1'
+    query_params[:roe_5y_avg_ge_12] = '1' if params[:roe_5y_avg_ge_12].to_s == '1'
+    query_params[:roe_5y_min_ge_8] = '1' if params[:roe_5y_min_ge_8].to_s == '1'
     include_ids = parse_id_list(params[:include_category_ids])
     exclude_ids = parse_id_list(params[:exclude_category_ids])
     query_params[:include_category_ids] = include_ids unless include_ids.empty?
@@ -622,6 +848,10 @@ helpers do
     exclude_pe_pct = parse_id_list(params[:exclude_pe_percentile_levels]).select { |x| x >= 1 && x <= 3 }
     query_params[:include_pe_percentile_levels] = include_pe_pct unless include_pe_pct.empty?
     query_params[:exclude_pe_percentile_levels] = exclude_pe_pct unless exclude_pe_pct.empty?
+    include_roe_lvls = parse_id_list(params[:include_roe_levels]).select { |x| x >= 1 && x <= 3 }
+    exclude_roe_lvls = parse_id_list(params[:exclude_roe_levels]).select { |x| x >= 1 && x <= 3 }
+    query_params[:include_roe_levels] = include_roe_lvls unless include_roe_lvls.empty?
+    query_params[:exclude_roe_levels] = exclude_roe_lvls unless exclude_roe_lvls.empty?
 
     "<a href='?#{build_query(query_params)}' class='hover:underline text-blue-600'>#{label}#{icon}</a>"
   end

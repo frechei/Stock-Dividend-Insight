@@ -1,0 +1,99 @@
+<div class="bg-white rounded-lg shadow-md p-6 space-y-8">
+    <div class="flex items-start justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-semibold text-gray-900">ROE（净资产收益率）知识库</h2>
+            <p class="mt-2 text-gray-600 text-sm">ROE 用来回答“股东的钱能赚出多少回报”。它是 PB 定价的核心解释变量之一，也是筛选长期高质量公司的关键指标。</p>
+        </div>
+        <div class="text-sm">
+            <a href="/kb" class="text-blue-600 hover:underline">知识库</a>
+            <span class="text-gray-300 mx-2">/</span>
+            <a href="/" class="text-blue-600 hover:underline">股票列表</a>
+        </div>
+    </div>
+
+    <section class="space-y-3">
+        <h3 class="text-lg font-semibold text-gray-800">1. ROE 是什么？</h3>
+        <div class="text-gray-700 leading-relaxed space-y-2">
+            <p>ROE（Return on Equity）= 净利润 / 平均净资产。直观理解：股东投入 1 元净资产，公司一年能赚回多少利润。</p>
+            <p>ROE 的“好”不只在于高，还在于可持续：靠主营、可复制、现金流匹配、在周期里不塌。</p>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-700 text-sm leading-relaxed">
+            <div class="font-semibold text-gray-800 mb-1">一个常用直觉</div>
+            <div>PB × ROE 往往能解释“股东回报的体感”：PB 决定你买得贵不贵，ROE 决定公司赚得快不快。</div>
+        </div>
+    </section>
+
+    <section class="space-y-3">
+        <h3 class="text-lg font-semibold text-gray-800">2. ROE 拆解：到底是哪里“赚”出来的？</h3>
+        <div class="text-gray-700 leading-relaxed space-y-2">
+            <p>用杜邦拆解可以把 ROE 拆成三块：盈利能力（净利率）× 资产周转（效率）× 财务杠杆（权益乘数）。</p>
+            <p>同样是 ROE 20%，可能来自强品牌的高毛利，也可能来自高杠杆的财务放大。后者通常更脆弱。</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                <div class="font-semibold text-blue-900 mb-1">利润端</div>
+                <div class="text-blue-900/90 text-sm leading-relaxed">看毛利/净利率、费用率、一次性收益占比。</div>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
+                <div class="font-semibold text-emerald-900 mb-1">效率端</div>
+                <div class="text-emerald-900/90 text-sm leading-relaxed">看资产周转、应收与存货周转、产能利用率。</div>
+            </div>
+            <div class="bg-amber-50 border border-amber-100 rounded-lg p-4">
+                <div class="font-semibold text-amber-900 mb-1">杠杆端</div>
+                <div class="text-amber-900/90 text-sm leading-relaxed">看负债结构、利息覆盖、是否用杠杆“堆”ROE。</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="space-y-3">
+        <h3 class="text-lg font-semibold text-gray-800">3. 稳定性：比“单年高 ROE”更重要</h3>
+        <div class="text-gray-700 leading-relaxed space-y-2">
+            <p>投资里 ROE 的意义在于持续复利，因此更建议把“稳定性”加入筛选：连续多年 ROE 维持在合理区间，通常代表商业模式更稳、盈利质量更好。</p>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-700 text-sm leading-relaxed">
+            <div class="font-semibold text-gray-800 mb-1">本系统里的 5 年稳定性筛选</div>
+            <div>近 5 年年报 ROE(加权) 均值 ≥ 12%（长期回报达标）</div>
+            <div>近 5 年年报 ROE(加权) 最低值 ≥ 8%（底线不塌）</div>
+        </div>
+    </section>
+
+    <section class="space-y-3">
+        <h3 class="text-lg font-semibold text-gray-800">4. 本系统里的 ROE 等级（ROE Level）</h3>
+        <div class="text-gray-700 text-sm leading-relaxed">基于最新一期 ROE(加权) 的绝对阈值做快速分档：</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3"><span class="font-semibold text-gray-800">1 一般</span> <span class="text-gray-600 text-sm">(ROE ≤ 15%)</span></div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3"><span class="font-semibold text-gray-800">2 优秀</span> <span class="text-gray-600 text-sm">(15% - 20%)</span></div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3"><span class="font-semibold text-gray-800">3 非常优秀</span> <span class="text-gray-600 text-sm">(ROE &gt; 20%)</span></div>
+        </div>
+        <div class="text-gray-700 leading-relaxed text-sm">
+            <div class="font-semibold text-gray-800 mb-1">使用建议</div>
+            <div>ROE Level 适合做“第一层筛选”。真正决策仍建议回到 ROE 的来源（利润/效率/杠杆），并结合行业周期与资产质量。</div>
+        </div>
+    </section>
+
+    <section class="space-y-3">
+        <h3 class="text-lg font-semibold text-gray-800">5. 常见误区与风险提示</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-4 text-yellow-900/90 text-sm leading-relaxed">
+                <div class="font-semibold text-yellow-900 mb-1">高 ROE 可能是“高杠杆”的结果</div>
+                <div>权益乘数越高，ROE 越容易被放大。需要一起看负债结构、利息覆盖和周期下行时的抗压能力。</div>
+            </div>
+            <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-4 text-yellow-900/90 text-sm leading-relaxed">
+                <div class="font-semibold text-yellow-900 mb-1">周期顶部的“看上去很美”</div>
+                <div>周期行业景气上行时利润抬升，ROE 可能短期走高，但不代表长期可持续。更要看周期位置与资本开支。</div>
+            </div>
+            <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-4 text-yellow-900/90 text-sm leading-relaxed">
+                <div class="font-semibold text-yellow-900 mb-1">一次性收益会扭曲 ROE</div>
+                <div>资产处置、补贴、投资收益等会推高净利润，使 ROE 失真。需要回到主营盈利与现金流。</div>
+            </div>
+            <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-4 text-yellow-900/90 text-sm leading-relaxed">
+                <div class="font-semibold text-yellow-900 mb-1">不同行业“合理 ROE”不同</div>
+                <div>银行/保险等金融企业的 ROE 与资本约束、资产质量、利差相关；制造业更看周转与成本；消费/科技更看壁垒与定价权。</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="text-xs text-gray-500 leading-relaxed border-t border-gray-100 pt-4">
+        <div>提示：以上内容仅用于解释指标与方法论，不构成任何投资建议。市场有风险，决策需自担。</div>
+    </section>
+</div>

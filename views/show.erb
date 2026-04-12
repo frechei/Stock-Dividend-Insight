@@ -63,18 +63,42 @@
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-gray-500 text-xs mb-1">市盈率(TTM)</div>
                 <div class="text-base font-semibold text-gray-800"><%= format_decimal(@stock.pe_ttm, 2) %></div>
-                <div class="text-xs text-gray-400 mt-1"><%= pe_level_label(@stock.pe_level) %></div>
-                <div class="text-xs text-gray-400"><%= pe_percentile_level_label(@stock.pe_percentile_level) %></div>
+                <div class="mt-1">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= pe_level_badge_class(@stock.pe_level) %> text-xs font-semibold"><%= pe_level_label(@stock.pe_level) %></span>
+                </div>
+                <% if @stock.pe_ttm && @stock.pe_ttm.to_f < 0 %>
+                    <div class="text-xs text-gray-400 mt-1">亏损</div>
+                <% else %>
+                    <div class="text-xs text-gray-400 mt-1"><%= pe_percentile_level_label(@stock.pe_percentile_level) %> (<%= format_ratio_percent(@stock.pe_percentile) %>)</div>
+                <% end %>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-gray-500 text-xs mb-1">市净率</div>
                 <div class="text-base font-semibold text-gray-800"><%= format_decimal(@stock.pb, 2) %></div>
-                <div class="text-xs text-gray-400 mt-1"><%= pb_level_label(@stock.pb_level) %></div>
-                <div class="text-xs text-gray-400"><%= pb_percentile_level_label(@stock.pb_percentile_level) %></div>
+                <div class="mt-1">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= pb_level_badge_class(@stock.pb_level) %> text-xs font-semibold"><%= pb_level_label(@stock.pb_level) %></span>
+                </div>
+                <div class="text-xs text-gray-400 mt-1"><%= pb_percentile_level_label(@stock.pb_percentile_level) %> (<%= format_ratio_percent(@stock.pb_percentile) %>)</div>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="text-gray-500 text-xs mb-1">ROE(加权)</div>
+                <div class="text-base font-semibold text-gray-800"><%= format_percent(@stock.roe_jq) %></div>
+                <div class="mt-1">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= roe_level_badge_class(@stock.roe_level) %> text-xs font-semibold"><%= roe_level_label(@stock.roe_level) %></span>
+                </div>
+                <div class="text-xs text-gray-400 mt-1">
+                    <a href="/?roe_5y_avg_ge_12=1" class="<%= @stock.roe_5y_avg_ge_12 ? 'text-green-600' : 'text-gray-400' %> hover:underline">近5年均值≥12%</a>
+                    <span class="mx-1 text-gray-300">|</span>
+                    <a href="/?roe_5y_min_ge_8=1" class="<%= @stock.roe_5y_min_ge_8 ? 'text-green-600' : 'text-gray-400' %> hover:underline">近5年最低≥8%</a>
+                </div>
+                <div class="text-xs text-gray-400 mt-1">近5年均值: <%= @roe_5y_avg ? format_percent(@roe_5y_avg) : '-' %> / 最低: <%= @roe_5y_min ? format_percent(@roe_5y_min) : '-' %></div>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-gray-500 text-xs mb-1">总股本</div>
                 <div class="text-base font-semibold text-gray-800"><%= format_shares(@stock.total_shares) %></div>
+                <div class="text-xs text-gray-400 mt-1">
+                    <a href="/?only_div5y=1" class="<%= @stock.has_dividend_5y ? 'text-green-600' : 'text-gray-400' %> hover:underline">连续5年分红</a>
+                </div>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-gray-500 text-xs mb-1">中国10年期国债</div>
@@ -87,9 +111,9 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-6 border-t border-gray-100">
             <% [["30d", @stock.pos_30d], ["1y", @stock.pos_1y], ["3y", @stock.pos_3y], ["5y", @stock.pos_5y]].each do |label, pos| %>
                 <div class="text-center">
-                    <div class="text-gray-400 text-xs uppercase mb-1"><%= label %> 位置</div>
+                    <div class="text-gray-400 text-xs uppercase mb-1"><%= label %> 分位</div>
                     <div class="text-lg font-semibold <%= position_color(pos) %>">
-                        <%= format_decimal(pos, 2) %>
+                        <%= format_ratio_percent(pos) %>
                     </div>
                 </div>
             <% end %>
@@ -104,6 +128,49 @@
         </h2>
         <div class="h-[400px]">
             <canvas id="priceChart"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8L13 15M3 17V7a2 2 0 012-2h6"></path></svg>
+            ROE（加权）年报（近5年）
+        </h2>
+        <div class="h-[240px] mb-4">
+            <canvas id="roeChart"></canvas>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-700 text-sm uppercase">
+                        <th class="p-3 border-b">年份</th>
+                        <th class="p-3 border-b text-right">ROE(加权)</th>
+                        <th class="p-3 border-b text-center">报告期</th>
+                        <th class="p-3 border-b text-center">公告日期</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm text-gray-600">
+                    <% @roe_5y.each do |x| %>
+                        <% row = x[:row] %>
+                        <tr class="hover:bg-gray-50 border-b border-gray-50">
+                            <td class="p-3"><%= x[:year] %></td>
+                            <td class="p-3 text-right"><%= row ? format_percent(row.roe_jq) : '-' %></td>
+                            <td class="p-3 text-center text-gray-400"><%= row ? row.report_date : '-' %></td>
+                            <td class="p-3 text-center text-gray-400"><%= row ? row.notice_date : '-' %></td>
+                        </tr>
+                    <% end %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3v18m0 0l-4-4m4 4l4-4M4 7h14a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V9a2 2 0 012-2z"></path></svg>
+            每股现金分红（近10年）
+        </h2>
+        <div class="h-[260px]">
+            <canvas id="dividendChart"></canvas>
         </div>
     </div>
 
@@ -168,6 +235,17 @@
                 fill: false,
                 tension: 0.1,
                 yAxisID: 'y1'
+            },
+            {
+                label: 'PE(TTM)',
+                data: [<%= @price_histories.map { |ph| ph.pe_ttm.nil? ? 'null' : ph.pe_ttm.to_f }.join(',') %>],
+                borderColor: 'rgb(234, 179, 8)',
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                borderWidth: 1,
+                pointRadius: 0,
+                fill: false,
+                tension: 0.1,
+                yAxisID: 'y2'
             }
         ]
     };
@@ -225,8 +303,77 @@
                             return value;
                         }
                     }
+                },
+                y2: {
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value;
+                        }
+                    }
                 }
             }
         }
     });
+
+    const roeCtx = document.getElementById('roeChart');
+    if (roeCtx) {
+        new Chart(roeCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: [<%= @roe_5y.map { |x| "'#{x[:year]}'" }.join(',') %>],
+                datasets: [{
+                    label: 'ROE(加权) %',
+                    data: [<%= @roe_5y.map { |x| x[:row] ? x[:row].roe_jq.to_f : 'null' }.join(',') %>],
+                    backgroundColor: 'rgba(16, 185, 129, 0.25)',
+                    borderColor: 'rgb(16, 185, 129)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        grid: { color: '#f3f4f6' },
+                        ticks: { callback: function(v) { return v + '%'; } }
+                    }
+                }
+            }
+        });
+    }
+
+    const divCtx = document.getElementById('dividendChart');
+    if (divCtx) {
+        new Chart(divCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: [<%= @annual_dividends.map { |x| "'#{x[:year]}'" }.join(',') %>],
+                datasets: [{
+                    label: '每股现金分红(元)',
+                    data: [<%= @annual_dividends.map { |x| x[:cash].to_f }.join(',') %>],
+                    backgroundColor: 'rgba(59, 130, 246, 0.18)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        grid: { color: '#f3f4f6' },
+                        ticks: { callback: function(v) { return v; } }
+                    }
+                }
+            }
+        });
+    }
 </script>

@@ -19,6 +19,8 @@
 
         <% base_params = { sort: @sort_param } %>
         <% base_params[:only_div5y] = '1' if @only_div5y %>
+        <% base_params[:roe_5y_avg_ge_12] = '1' if @roe_5y_avg_ge_12 %>
+        <% base_params[:roe_5y_min_ge_8] = '1' if @roe_5y_min_ge_8 %>
         <% base_params[:include_category_ids] = @include_category_ids unless @include_category_ids.empty? %>
         <% base_params[:exclude_category_ids] = @exclude_category_ids unless @exclude_category_ids.empty? %>
         <% base_params[:include_pb_levels] = @include_pb_levels unless @include_pb_levels.empty? %>
@@ -29,6 +31,8 @@
         <% base_params[:exclude_pe_levels] = @exclude_pe_levels unless @exclude_pe_levels.empty? %>
         <% base_params[:include_pe_percentile_levels] = @include_pe_percentile_levels unless @include_pe_percentile_levels.empty? %>
         <% base_params[:exclude_pe_percentile_levels] = @exclude_pe_percentile_levels unless @exclude_pe_percentile_levels.empty? %>
+        <% base_params[:include_roe_levels] = @include_roe_levels unless @include_roe_levels.empty? %>
+        <% base_params[:exclude_roe_levels] = @exclude_roe_levels unless @exclude_roe_levels.empty? %>
 
         <form id="filterForm" method="get" action="/" class="mt-4">
             <input type="hidden" id="sortInput" name="sort" value="<%= @sort_param %>">
@@ -39,6 +43,40 @@
                     <input type="checkbox" name="only_div5y" value="1" <%= @only_div5y ? 'checked' : '' %>>
                     <span>仅显示连续5年分红</span>
                 </label>
+
+                <label class="flex items-center gap-2 px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer">
+                    <input type="checkbox" name="roe_5y_avg_ge_12" value="1" <%= @roe_5y_avg_ge_12 ? 'checked' : '' %>>
+                    <span>ROE近5年均值≥12%</span>
+                </label>
+
+                <label class="flex items-center gap-2 px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer">
+                    <input type="checkbox" name="roe_5y_min_ge_8" value="1" <%= @roe_5y_min_ge_8 ? 'checked' : '' %>>
+                    <span>ROE近5年最低≥8%</span>
+                </label>
+
+                <details class="relative">
+                    <summary class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer select-none">包含ROE等级 (<%= @include_roe_levels.size %>)</summary>
+                    <div class="absolute z-10 mt-2 w-64 max-h-72 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
+                        <% (1..3).each do |lvl| %>
+                            <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="include_roe_levels[]" value="<%= lvl %>" <%= @include_roe_levels.include?(lvl) ? 'checked' : '' %>>
+                                <span><%= roe_level_label(lvl) %></span>
+                            </label>
+                        <% end %>
+                    </div>
+                </details>
+
+                <details class="relative">
+                    <summary class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer select-none">排除ROE等级 (<%= @exclude_roe_levels.size %>)</summary>
+                    <div class="absolute z-10 mt-2 w-64 max-h-72 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
+                        <% (1..3).each do |lvl| %>
+                            <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded">
+                                <input type="checkbox" name="exclude_roe_levels[]" value="<%= lvl %>" <%= @exclude_roe_levels.include?(lvl) ? 'checked' : '' %>>
+                                <span><%= roe_level_label(lvl) %></span>
+                            </label>
+                        <% end %>
+                    </div>
+                </details>
 
                 <details class="relative">
                     <summary class="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer select-none">包含分类 (<%= @include_category_ids.size %>)</summary>
@@ -272,10 +310,36 @@
                 <a href="/?<%= build_query(base_params.merge(remove_exclude_pe_percentile_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
             </span>
         <% end %>
+        <% @include_roe_levels.each do |lvl| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">包含ROE</span>
+                <span class="ml-1"><%= roe_level_label(lvl) %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_include_roe_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
+        <% @exclude_roe_levels.each do |lvl| %>
+            <span class="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded-full border border-gray-200">
+                <span class="font-semibold">排除ROE</span>
+                <span class="ml-1"><%= roe_level_label(lvl) %></span>
+                <a href="/?<%= build_query(base_params.merge(remove_exclude_roe_level: lvl)) %>" class="ml-2 text-gray-500 hover:text-gray-800">×</a>
+            </span>
+        <% end %>
         <% if @only_div5y %>
             <span class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded-full border border-green-100">
                 <span class="font-semibold">连续5年分红</span>
                 <a href="/?<%= build_query(base_params.merge(only_div5y: nil)) %>" class="ml-2 text-green-600 hover:text-green-900">×</a>
+            </span>
+        <% end %>
+        <% if @roe_5y_avg_ge_12 %>
+            <span class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded-full border border-green-100">
+                <span class="font-semibold">ROE近5年均值≥12%</span>
+                <a href="/?<%= build_query(base_params.merge(roe_5y_avg_ge_12: nil)) %>" class="ml-2 text-green-600 hover:text-green-900">×</a>
+            </span>
+        <% end %>
+        <% if @roe_5y_min_ge_8 %>
+            <span class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded-full border border-green-100">
+                <span class="font-semibold">ROE近5年最低≥8%</span>
+                <a href="/?<%= build_query(base_params.merge(roe_5y_min_ge_8: nil)) %>" class="ml-2 text-green-600 hover:text-green-900">×</a>
             </span>
         <% end %>
     </div>
@@ -295,11 +359,13 @@
                     <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('pb', 'PB') %></th>
                     <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pb_level', 'PB等级') %></th>
                     <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pb_percentile', 'PB分位') %></th>
-                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_30d', '30d位置') %></th>
-                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_1y', '1y位置') %></th>
-                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_3y', '3y位置') %></th>
-                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_5y', '5y位置') %></th>
-                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('price_position', '全量位置') %></th>
+                    <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('roe_jq', 'ROE') %></th>
+                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('roe_level', 'ROE等级') %></th>
+                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_30d', '30d分位') %></th>
+                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_1y', '1y分位') %></th>
+                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_3y', '3y分位') %></th>
+                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pos_5y', '5y分位') %></th>
+                    <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('price_position', '全量分位') %></th>
                 </tr>
             </thead>
             <tbody class="text-gray-600">
@@ -326,8 +392,13 @@
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= pe_level_badge_class(stock.pe_level) %> font-semibold"><%= pe_level_label(stock.pe_level) %></span>
                         </td>
                         <td class="p-3 text-center">
-                            <div><%= pe_percentile_level_label(stock.pe_percentile_level) %></div>
-                            <div class="text-xs text-gray-400"><%= format_ratio_percent(stock.pe_percentile) %></div>
+                            <% if stock.pe_ttm && stock.pe_ttm.to_f < 0 %>
+                                <div>亏损</div>
+                                <div class="text-xs text-gray-400">-</div>
+                            <% else %>
+                                <div><%= pe_percentile_level_label(stock.pe_percentile_level) %></div>
+                                <div class="text-xs text-gray-400"><%= format_ratio_percent(stock.pe_percentile) %></div>
+                            <% end %>
                         </td>
                         <td class="p-3 text-right"><%= format_decimal(stock.pb, 2) %></td>
                         <td class="p-3 text-center">
@@ -337,21 +408,25 @@
                             <div><%= pb_percentile_level_label(stock.pb_percentile_level) %></div>
                             <div class="text-xs text-gray-400"><%= format_ratio_percent(stock.pb_percentile) %></div>
                         </td>
+                        <td class="p-3 text-right"><%= format_percent(stock.roe_jq) %></td>
+                        <td class="p-3 text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= roe_level_badge_class(stock.roe_level) %> font-semibold"><%= roe_level_label(stock.roe_level) %></span>
+                        </td>
                         
                         <td class="p-3 text-center <%= position_color(stock.pos_30d) %>">
-                            <%= format_decimal(stock.pos_30d, 2) %>
+                            <%= format_ratio_percent(stock.pos_30d) %>
                         </td>
                         <td class="p-3 text-center <%= position_color(stock.pos_1y) %>">
-                            <%= format_decimal(stock.pos_1y, 2) %>
+                            <%= format_ratio_percent(stock.pos_1y) %>
                         </td>
                         <td class="p-3 text-center <%= position_color(stock.pos_3y) %>">
-                            <%= format_decimal(stock.pos_3y, 2) %>
+                            <%= format_ratio_percent(stock.pos_3y) %>
                         </td>
                         <td class="p-3 text-center <%= position_color(stock.pos_5y) %>">
-                            <%= format_decimal(stock.pos_5y, 2) %>
+                            <%= format_ratio_percent(stock.pos_5y) %>
                         </td>
                         <td class="p-3 text-center font-bold">
-                            <%= format_decimal(stock.price_position, 2) %>
+                            <%= format_ratio_percent(stock.price_position) %>
                         </td>
                     </tr>
                 <% end %>
