@@ -395,6 +395,9 @@
                             <% if stock.pe_ttm && stock.pe_ttm.to_f < 0 %>
                                 <div>亏损</div>
                                 <div class="text-xs text-gray-400">-</div>
+                            <% elsif stock.pe_ttm && stock.pe_ttm.to_f > 0 && stock.pe_percentile.nil? %>
+                                <div>未同步</div>
+                                <div class="text-xs text-gray-400">-</div>
                             <% else %>
                                 <div><%= pe_percentile_level_label(stock.pe_percentile_level) %></div>
                                 <div class="text-xs text-gray-400"><%= format_ratio_percent(stock.pe_percentile) %></div>
@@ -405,12 +408,21 @@
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= pb_level_badge_class(stock.pb_level) %> font-semibold"><%= pb_level_label(stock.pb_level) %></span>
                         </td>
                         <td class="p-3 text-center">
-                            <div><%= pb_percentile_level_label(stock.pb_percentile_level) %></div>
-                            <div class="text-xs text-gray-400"><%= format_ratio_percent(stock.pb_percentile) %></div>
+                            <% if stock.pb && stock.pb.to_f > 0 && stock.pb_percentile.nil? %>
+                                <div>未同步</div>
+                                <div class="text-xs text-gray-400">-</div>
+                            <% else %>
+                                <div><%= pb_percentile_level_label(stock.pb_percentile_level) %></div>
+                                <div class="text-xs text-gray-400"><%= format_ratio_percent(stock.pb_percentile) %></div>
+                            <% end %>
                         </td>
-                        <td class="p-3 text-right"><%= format_percent(stock.roe_jq) %></td>
+                        <td class="p-3 text-right"><%= stock.roe_jq.nil? ? '未同步' : format_percent(stock.roe_jq) %></td>
                         <td class="p-3 text-center">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= roe_level_badge_class(stock.roe_level) %> font-semibold"><%= roe_level_label(stock.roe_level) %></span>
+                            <% if stock.roe_level.nil? %>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full border bg-gray-50 text-gray-500 border-gray-200 font-semibold">未同步</span>
+                            <% else %>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= roe_level_badge_class(stock.roe_level) %> font-semibold"><%= roe_level_label(stock.roe_level) %></span>
+                            <% end %>
                         </td>
                         
                         <td class="p-3 text-center <%= position_color(stock.pos_30d) %>">

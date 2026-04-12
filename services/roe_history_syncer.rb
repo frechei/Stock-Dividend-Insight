@@ -4,7 +4,8 @@ require 'json'
 require 'date'
 
 class RoeHistorySyncer
-  def initialize(years: 12, sleep_range: (0.04..0.10))
+  def initialize(scope: Stock.all, years: 12, sleep_range: (0.04..0.10))
+    @scope = scope
     @years = years.to_i
     @years = 12 if @years <= 0
     @sleep_range = sleep_range
@@ -19,7 +20,7 @@ class RoeHistorySyncer
       f.adapter Faraday.default_adapter
     end
 
-    Stock.order(:id).find_each do |stock|
+    @scope.order(:id).find_each do |stock|
       sync_one(conn, stock)
       sleep(rand(@sleep_range)) if @sleep_range
     end
