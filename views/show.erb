@@ -144,7 +144,7 @@
     <div class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
             <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8L13 15M3 17V7a2 2 0 012-2h6"></path></svg>
-            ROE（加权）年报（近5年）
+            ROE（加权）年报（全量）
         </h2>
         <div class="h-[240px] mb-4">
             <canvas id="roeChart"></canvas>
@@ -160,13 +160,12 @@
                     </tr>
                 </thead>
                 <tbody class="text-sm text-gray-600">
-                    <% @roe_5y.each do |x| %>
-                        <% row = x[:row] %>
+                    <% @roe_annual_rows.each do |row| %>
                         <tr class="hover:bg-gray-50 border-b border-gray-50">
-                            <td class="p-3"><%= x[:year] %></td>
-                            <td class="p-3 text-right"><%= row ? format_percent(row.roe_jq) : '-' %></td>
-                            <td class="p-3 text-center text-gray-400"><%= row ? row.report_date : '-' %></td>
-                            <td class="p-3 text-center text-gray-400"><%= row ? row.notice_date : '-' %></td>
+                            <td class="p-3"><%= row.report_date&.year %></td>
+                            <td class="p-3 text-right"><%= format_percent(row.roe_jq) %></td>
+                            <td class="p-3 text-center text-gray-400"><%= row.report_date %></td>
+                            <td class="p-3 text-center text-gray-400"><%= row.notice_date || '-' %></td>
                         </tr>
                     <% end %>
                 </tbody>
@@ -331,22 +330,40 @@
 
     const roeCtx = document.getElementById('roeChart');
     if (roeCtx) {
+        const roeSeries = [<%= @roe_annual_rows.map { |r| r.roe_jq.to_f }.join(',') %>];
+        const roeYears = [<%= @roe_annual_rows.map { |r| "'#{r.report_date&.year}'" }.join(',') %>];
+        const roeMa5 = roeSeries.map((_, i) => {
+            if (i < 4) return null;
+            const window = roeSeries.slice(i - 4, i + 1);
+            const sum = window.reduce((acc, v) => acc + v, 0);
+            return sum / window.length;
+        });
         new Chart(roeCtx.getContext('2d'), {
             type: 'bar',
             data: {
-                labels: [<%= @roe_5y.map { |x| "'#{x[:year]}'" }.join(',') %>],
+                labels: roeYears,
                 datasets: [{
                     label: 'ROE(加权) %',
-                    data: [<%= @roe_5y.map { |x| x[:row] ? x[:row].roe_jq.to_f : 'null' }.join(',') %>],
+                    data: roeSeries,
                     backgroundColor: 'rgba(16, 185, 129, 0.25)',
                     borderColor: 'rgb(16, 185, 129)',
                     borderWidth: 1
+                }, {
+                    type: 'line',
+                    label: 'MA5',
+                    data: roeMa5,
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.2,
+                    spanGaps: true
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { legend: { display: true } },
                 scales: {
                     x: { grid: { display: false } },
                     y: {

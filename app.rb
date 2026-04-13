@@ -536,25 +536,16 @@ get '/stocks/:id' do
   @price_histories = @stock.price_histories.where('date >= ?', from_date).order(date: :asc)
   # 分红历史，按报告期降序展示
   @dividends = @stock.dividends.order(report_date: :desc)
-  roe_annual_rows =
+  @roe_annual_rows =
     @stock
       .roe_histories
       .where(report_type: '年报')
       .where.not(roe_jq: nil)
-      .order(report_date: :desc)
-      .limit(12)
+      .order(report_date: :asc)
 
-  latest_year = roe_annual_rows.first&.report_date&.year
-  @roe_5y =
-    if latest_year
-      years = (0..4).map { |i| latest_year - i }
-      by_year = roe_annual_rows.to_a.group_by { |r| r.report_date&.year }
-      years.map { |y| { year: y, row: (by_year[y] && by_year[y].first) } }
-    else
-      []
-    end
-  roe_vals = @roe_5y.map { |x| x[:row]&.roe_jq }.compact.map(&:to_f)
-  if roe_vals.size == 5
+  roe_last5 = @roe_annual_rows.last(5)
+  roe_vals = roe_last5.map { |r| r.roe_jq }.compact.map(&:to_f)
+  if roe_last5.size == 5 && roe_vals.size == 5
     @roe_5y_avg = roe_vals.sum / roe_vals.size.to_f
     @roe_5y_min = roe_vals.min
   else
