@@ -20,7 +20,7 @@ set :port, 4567
 
 get '/' do
   allowed_sort_fields = %w[
-    current_price expected_dividend_yield dividend_yield
+    current_price dividend_yield
     turnover_rate volume pe_ttm pe_level pe_percentile pb pb_level pb_percentile roe_jq roe_level total_shares
     pos_30d pos_1y pos_3y pos_5y price_position
   ]
@@ -613,7 +613,6 @@ helpers do
       'name' => '股票名称',
       'code' => '代码',
       'current_price' => '最新价',
-      'expected_dividend_yield' => '预期股息率',
       'dividend_yield' => '历史股息率',
       'turnover_rate' => '换手率',
       'volume' => '成交量',

@@ -58,7 +58,7 @@ class ValuationCalculator
     # 4. 股息率位置
     max_yield = stock.dividends.maximum(:dividend_yield)
     min_yield = stock.dividends.minimum(:dividend_yield)
-    current_yield = stock.expected_dividend_yield || stock.dividend_yield
+    current_yield = stock.dividend_yield
     if current_yield
       if max_yield && min_yield
         if max_yield > min_yield

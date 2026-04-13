@@ -33,12 +33,12 @@
             
             <div class="mt-4 md:mt-0 grid grid-cols-2 gap-4 text-sm">
                 <div class="p-3 bg-blue-50 rounded-lg">
-                    <div class="text-blue-600 mb-1">预期股息率</div>
-                    <div class="text-xl font-bold text-blue-800"><%= format_percent(@stock.expected_dividend_yield) %></div>
+                    <div class="text-blue-600 mb-1">历史股息率</div>
+                    <div class="text-xl font-bold text-blue-800"><%= format_percent(@stock.dividend_yield) %></div>
                 </div>
                 <div class="p-3 bg-green-50 rounded-lg">
-                    <div class="text-green-600 mb-1">全量价格位置</div>
-                    <div class="text-xl font-bold text-green-800"><%= format_decimal(@stock.price_position, 2) %></div>
+                    <div class="text-green-600 mb-1">全量分位</div>
+                    <div class="text-xl font-bold text-green-800"><%= format_ratio_percent(@stock.price_position) %></div>
                 </div>
             </div>
         </div>
