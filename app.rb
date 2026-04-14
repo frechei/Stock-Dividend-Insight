@@ -300,6 +300,14 @@ get '/kb/pe' do
   erb :kb_pe
 end
 
+get '/kb/peg' do
+  erb :kb_peg
+end
+
+get '/kb/debt' do
+  erb :kb_debt
+end
+
 get '/kb/roe' do
   erb :kb_roe
 end
