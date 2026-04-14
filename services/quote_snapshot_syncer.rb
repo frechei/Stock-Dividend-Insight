@@ -100,9 +100,6 @@ class QuoteSnapshotSyncer
 
         stock.pe_ttm = pe_ttm if pe_ttm
         stock.pb = pb if pb
-        if em
-          stock.dividend_yield = em[:dividend_yield] if em[:dividend_yield]
-        end
 
         if stock.changed?
           stock.save!
@@ -175,8 +172,7 @@ class QuoteSnapshotSyncer
 
         out[code] = {
           price: parse_float(x['f43']),
-          pe_ttm: parse_float(x['f162']),
-          dividend_yield: parse_float(x['f167'])
+          pe_ttm: parse_float(x['f162'])
         }
         wanted.delete(code)
       end
