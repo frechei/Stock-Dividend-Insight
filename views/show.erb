@@ -75,6 +75,19 @@
                 <% end %>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="text-gray-500 text-xs mb-1">PEG</div>
+                <div class="text-base font-semibold text-gray-800"><%= @stock.peg.nil? ? '-' : format_decimal(@stock.peg, 2) %></div>
+                <div class="mt-1">
+                    <% if @stock.peg_level.nil? %>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full border bg-gray-50 text-gray-500 border-gray-200 text-xs font-semibold">-</span>
+                    <% else %>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= peg_level_badge_class(@stock.peg_level) %> text-xs font-semibold"><%= peg_level_label(@stock.peg_level) %></span>
+                    <% end %>
+                </div>
+                <div class="text-xs text-gray-400 mt-1">净利同比: <%= @stock.net_profit_yoy.nil? ? '-' : format_percent(@stock.net_profit_yoy) %></div>
+                <div class="text-xs text-gray-400 mt-1">财报期: <%= @stock.finance_report_date || '-' %></div>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-gray-500 text-xs mb-1">市净率</div>
                 <div class="text-base font-semibold text-gray-800"><%= format_decimal(@stock.pb, 2) %></div>
                 <div class="mt-1">
@@ -85,6 +98,12 @@
                 <% else %>
                     <div class="text-xs text-gray-400 mt-1"><%= pb_percentile_level_label(@stock.pb_percentile_level) %> (<%= format_ratio_percent(@stock.pb_percentile) %>)</div>
                 <% end %>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="text-gray-500 text-xs mb-1">资产负债率</div>
+                <div class="text-base font-semibold text-gray-800"><%= @stock.asset_liability_ratio.nil? ? '未同步' : format_percent(@stock.asset_liability_ratio) %></div>
+                <div class="text-xs text-gray-400 mt-1">有息负债率: <%= @stock.interest_debt_ratio.nil? ? '-' : format_percent(@stock.interest_debt_ratio) %></div>
+                <div class="text-xs text-gray-400 mt-1">财报期: <%= @stock.finance_report_date || '-' %></div>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-gray-500 text-xs mb-1">ROE(加权)</div>

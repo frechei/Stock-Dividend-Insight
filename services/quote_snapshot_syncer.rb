@@ -126,7 +126,7 @@ class QuoteSnapshotSyncer
 
     url = 'https://push2.eastmoney.com/api/qt/clist/get'
     fs = 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23'
-    fields = 'f12,f43,f162,f167'
+    fields = 'f12,f43,f162'
 
     pn = 1
     loop do

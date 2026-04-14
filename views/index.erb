@@ -31,6 +31,8 @@
         <% base_params[:exclude_pe_levels] = @exclude_pe_levels unless @exclude_pe_levels.empty? %>
         <% base_params[:include_pe_percentile_levels] = @include_pe_percentile_levels unless @include_pe_percentile_levels.empty? %>
         <% base_params[:exclude_pe_percentile_levels] = @exclude_pe_percentile_levels unless @exclude_pe_percentile_levels.empty? %>
+        <% base_params[:include_peg_levels] = @include_peg_levels unless @include_peg_levels.empty? %>
+        <% base_params[:exclude_peg_levels] = @exclude_peg_levels unless @exclude_peg_levels.empty? %>
         <% base_params[:include_roe_levels] = @include_roe_levels unless @include_roe_levels.empty? %>
         <% base_params[:exclude_roe_levels] = @exclude_roe_levels unless @exclude_roe_levels.empty? %>
 
@@ -121,6 +123,18 @@
                             </details>
 
                             <details class="relative">
+                                <summary class="px-3 py-1 rounded bg-white text-gray-700 hover:bg-gray-50 cursor-pointer select-none border border-gray-200">PEG等级 (<%= @include_peg_levels.size %>)</summary>
+                                <div class="absolute z-10 mt-2 w-64 max-h-72 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
+                                    <% (1..5).each do |lvl| %>
+                                        <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded">
+                                            <input type="checkbox" name="include_peg_levels[]" value="<%= lvl %>" <%= @include_peg_levels.include?(lvl) ? 'checked' : '' %>>
+                                            <span><%= peg_level_label(lvl) %></span>
+                                        </label>
+                                    <% end %>
+                                </div>
+                            </details>
+
+                            <details class="relative">
                                 <summary class="px-3 py-1 rounded bg-white text-gray-700 hover:bg-gray-50 cursor-pointer select-none border border-gray-200">ROE等级 (<%= @include_roe_levels.size %>)</summary>
                                 <div class="absolute z-10 mt-2 w-64 max-h-72 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
                                     <% (1..3).each do |lvl| %>
@@ -192,6 +206,18 @@
                                         <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded">
                                             <input type="checkbox" name="exclude_pe_percentile_levels[]" value="<%= lvl %>" <%= @exclude_pe_percentile_levels.include?(lvl) ? 'checked' : '' %>>
                                             <span><%= pe_percentile_level_label(lvl) %></span>
+                                        </label>
+                                    <% end %>
+                                </div>
+                            </details>
+
+                            <details class="relative">
+                                <summary class="px-3 py-1 rounded bg-white text-gray-700 hover:bg-gray-50 cursor-pointer select-none border border-gray-200">PEG等级 (<%= @exclude_peg_levels.size %>)</summary>
+                                <div class="absolute z-10 mt-2 w-64 max-h-72 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
+                                    <% (1..5).each do |lvl| %>
+                                        <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded">
+                                            <input type="checkbox" name="exclude_peg_levels[]" value="<%= lvl %>" <%= @exclude_peg_levels.include?(lvl) ? 'checked' : '' %>>
+                                            <span><%= peg_level_label(lvl) %></span>
                                         </label>
                                     <% end %>
                                 </div>
@@ -273,8 +299,8 @@
         <% end %>
     </div>
 
-    <% any_include = @included_categories.any? || @include_pb_levels.any? || @include_pb_percentile_levels.any? || @include_pe_levels.any? || @include_pe_percentile_levels.any? || @include_roe_levels.any? %>
-    <% any_exclude = @excluded_categories.any? || @exclude_pb_levels.any? || @exclude_pb_percentile_levels.any? || @exclude_pe_levels.any? || @exclude_pe_percentile_levels.any? || @exclude_roe_levels.any? %>
+    <% any_include = @included_categories.any? || @include_pb_levels.any? || @include_pb_percentile_levels.any? || @include_pe_levels.any? || @include_pe_percentile_levels.any? || @include_peg_levels.any? || @include_roe_levels.any? %>
+    <% any_exclude = @excluded_categories.any? || @exclude_pb_levels.any? || @exclude_pb_percentile_levels.any? || @exclude_pe_levels.any? || @exclude_pe_percentile_levels.any? || @exclude_peg_levels.any? || @exclude_roe_levels.any? %>
     <% if any_include || any_exclude %>
     <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
         <% if any_include %>
@@ -314,6 +340,13 @@
                         <span class="font-semibold">PE分位</span>
                         <span class="ml-1"><%= pe_percentile_level_label(lvl) %></span>
                         <a href="/?<%= build_query(base_params.merge(remove_include_pe_percentile_level: lvl)) %>" class="ml-2 text-blue-600 hover:text-blue-900">×</a>
+                    </span>
+                <% end %>
+                <% @include_peg_levels.each do |lvl| %>
+                    <span class="inline-flex items-center px-2 py-1 bg-white text-gray-700 rounded-full border border-blue-200">
+                        <span class="font-semibold">PEG等级</span>
+                        <span class="ml-1"><%= peg_level_label(lvl) %></span>
+                        <a href="/?<%= build_query(base_params.merge(remove_include_peg_level: lvl)) %>" class="ml-2 text-blue-600 hover:text-blue-900">×</a>
                     </span>
                 <% end %>
                 <% @include_roe_levels.each do |lvl| %>
@@ -366,6 +399,13 @@
                         <a href="/?<%= build_query(base_params.merge(remove_exclude_pe_percentile_level: lvl)) %>" class="ml-2 text-red-600 hover:text-red-900">×</a>
                     </span>
                 <% end %>
+                <% @exclude_peg_levels.each do |lvl| %>
+                    <span class="inline-flex items-center px-2 py-1 bg-white text-gray-700 rounded-full border border-red-200">
+                        <span class="font-semibold">PEG等级</span>
+                        <span class="ml-1"><%= peg_level_label(lvl) %></span>
+                        <a href="/?<%= build_query(base_params.merge(remove_exclude_peg_level: lvl)) %>" class="ml-2 text-red-600 hover:text-red-900">×</a>
+                    </span>
+                <% end %>
                 <% @exclude_roe_levels.each do |lvl| %>
                     <span class="inline-flex items-center px-2 py-1 bg-white text-gray-700 rounded-full border border-red-200">
                         <span class="font-semibold">ROE等级</span>
@@ -388,6 +428,8 @@
                     <th class="p-3 border-b border-gray-200 text-right hidden md:table-cell"><%= sort_link('current_price', '最新价') %></th>
                     <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('dividend_yield', '历史股息率') %></th>
                     <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('pe_ttm', 'PE(TTM)') %></th>
+                    <th class="p-3 border-b border-gray-200 text-right hidden md:table-cell"><%= sort_link('peg', 'PEG') %></th>
+                    <th class="p-3 border-b border-gray-200 text-right hidden md:table-cell"><%= sort_link('asset_liability_ratio', '资产负债率') %></th>
                     <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pe_level', 'PE等级') %></th>
                     <th class="p-3 border-b border-gray-200 text-center"><%= sort_link('pe_percentile', 'PE分位') %></th>
                     <th class="p-3 border-b border-gray-200 text-right"><%= sort_link('pb', 'PB') %></th>
@@ -421,6 +463,8 @@
                         <td class="p-3 text-right hidden md:table-cell"><%= format_decimal(stock.current_price, 2) %></td>
                 <td class="p-3 text-right font-bold text-blue-700"><%= stock.dividend_yield.nil? ? '未同步' : format_percent(stock.dividend_yield) %></td>
                         <td class="p-3 text-right"><%= format_decimal(stock.pe_ttm, 2) %></td>
+                        <td class="p-3 text-right hidden md:table-cell"><%= stock.peg.nil? ? '-' : format_decimal(stock.peg, 2) %></td>
+                        <td class="p-3 text-right hidden md:table-cell"><%= stock.asset_liability_ratio.nil? ? '未同步' : format_percent(stock.asset_liability_ratio) %></td>
                         <td class="p-3 text-center">
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full border <%= pe_level_badge_class(stock.pe_level) %> font-semibold"><%= pe_level_label(stock.pe_level) %></span>
                         </td>

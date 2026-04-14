@@ -14,6 +14,7 @@ require_relative 'services/dividend_syncer'
 require_relative 'services/valuation_calculator'
 require_relative 'services/valuation_history_syncer'
 require_relative 'services/roe_history_syncer'
+require_relative 'services/finance_snapshot_syncer'
 
 class StockSyncService
   def initialize(incremental: false, force: false, force_pull: false, backfill_cn10y: false, add_csi500: false, add_a500: false, add_kc50: false, add_tech50: false, add_ai50: false, add_dividend_etf_constituents: false, fill_categories: false, sync_valuation_history: true, valuation_years: 10, valuation_force: false, sync_roe_history: true, roe_years: 12)
@@ -68,6 +69,14 @@ class StockSyncService
 
     # 2. 同步实时快照（换手率、市值、量、均价、PE/PB、总股本等）
     QuoteSnapshotSyncer.new.sync
+
+    need_fin_scope =
+      Stock
+        .where(finance_report_date: nil)
+        .or(Stock.where('finance_report_date < ?', Date.today - 365))
+        .or(Stock.where(peg_level: nil))
+        .or(Stock.where(asset_liability_ratio: nil))
+    FinanceSnapshotSyncer.new(scope: need_fin_scope, sleep_range: (0.04..0.10)).sync if need_fin_scope.exists?
 
     if @sync_roe_history
       need_roe_scope =
