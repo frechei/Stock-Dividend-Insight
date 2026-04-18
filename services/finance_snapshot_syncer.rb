@@ -134,7 +134,7 @@ class FinanceSnapshotSyncer
   def parse_decimal(v)
     return nil if v.nil?
     s = v.to_s.strip
-    return nil if s.empty? || s == '-' || s == '0'
+    return nil if s.empty? || s == '-'
     n = Float(s) rescue nil
     return nil unless n && n.finite?
     n
