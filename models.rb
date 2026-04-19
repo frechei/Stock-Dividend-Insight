@@ -1,6 +1,7 @@
 require 'active_record'
 require 'dotenv/load'
 require 'httplog'
+require 'bcrypt'
 
 # HttpLog 配置
 HttpLog.configure do |config|
@@ -36,6 +37,46 @@ class Stock < ActiveRecord::Base
   has_many :roe_histories, dependent: :destroy
   has_many :categorizations, dependent: :destroy
   has_many :categories, through: :categorizations
+end
+
+class User < ActiveRecord::Base
+  validates :email, presence: true, uniqueness: { case_sensitive: false }
+  validate :validate_password_on_create
+  validate :validate_password_confirmation, if: -> { @password }
+
+  def email=(value)
+    super(value.to_s.strip.downcase)
+  end
+
+  def password=(value)
+    @password = value.to_s
+    self.password_digest = BCrypt::Password.create(@password) if @password.size > 0
+  end
+
+  def password_confirmation=(value)
+    @password_confirmation = value.to_s
+  end
+
+  def authenticate(value)
+    return false if password_digest.to_s.strip.empty?
+    BCrypt::Password.new(password_digest) == value.to_s
+  end
+
+  private
+
+  def validate_password_on_create
+    return unless new_record?
+    if @password.to_s.strip.empty?
+      errors.add(:password, '不能为空')
+    elsif @password.to_s.size < 8
+      errors.add(:password, '至少 8 位')
+    end
+  end
+
+  def validate_password_confirmation
+    return if @password_confirmation.to_s.strip.empty?
+    errors.add(:password_confirmation, '不一致') if @password_confirmation != @password
+  end
 end
 
 # 分类模型

@@ -1,4 +1,5 @@
 require 'date'
+require 'securerandom'
 require 'sinatra'
 require 'sinatra/reloader' if development?
 require_relative 'models'
@@ -17,6 +18,101 @@ end
 
 set :bind, '0.0.0.0'
 set :port, 4567
+enable :sessions
+set :session_secret, ENV['SESSION_SECRET'] || SecureRandom.hex(64)
+
+helpers do
+  def current_user
+    return nil unless session[:user_id]
+    @current_user ||= User.find_by(id: session[:user_id])
+  end
+
+  def logged_in?
+    !current_user.nil?
+  end
+
+  def log_in(user)
+    session[:user_id] = user.id
+  end
+
+  def log_out
+    session.delete(:user_id)
+    @current_user = nil
+  end
+
+  def flash
+    session.delete(:flash)
+  end
+
+  def set_flash(message)
+    session[:flash] = message.to_s
+  end
+
+  def redirect_back_or(default_path)
+    to = session.delete(:return_to)
+    redirect(to && to.to_s.size > 0 ? to : default_path)
+  end
+end
+
+get '/health' do
+  'ok'
+end
+
+get '/signup' do
+  erb :signup
+end
+
+post '/signup' do
+  email = params[:email].to_s
+  password = params[:password].to_s
+  password_confirmation = params[:password_confirmation].to_s
+
+  email = email.strip.downcase
+  if email.empty?
+    set_flash('邮箱不能为空')
+    redirect '/signup'
+  end
+
+  if User.where(email: email).exists?
+    set_flash('邮箱已存在')
+    redirect '/signup'
+  end
+
+  user = User.new(email: email)
+  user.password = password
+  user.password_confirmation = password_confirmation
+
+  if user.save
+    log_in(user)
+    redirect_back_or('/')
+  else
+    set_flash(user.errors.full_messages.join('；'))
+    redirect '/signup'
+  end
+end
+
+get '/login' do
+  erb :login
+end
+
+post '/login' do
+  email = params[:email].to_s.strip.downcase
+  password = params[:password].to_s
+
+  user = User.find_by(email: email)
+  if user && user.authenticate(password)
+    log_in(user)
+    redirect_back_or('/')
+  else
+    set_flash('邮箱或密码不正确')
+    redirect '/login'
+  end
+end
+
+post '/logout' do
+  log_out
+  redirect '/login'
+end
 
 get '/' do
   @layout_full_width = true

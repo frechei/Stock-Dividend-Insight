@@ -1,0 +1,29 @@
+<div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-xl font-semibold text-gray-900">注册</h2>
+    <p class="mt-1 text-sm text-gray-500">创建账号后即可使用系统。</p>
+
+    <form method="post" action="/signup" class="mt-6 space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">邮箱</label>
+            <input type="email" name="email" required class="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">密码</label>
+            <input type="password" name="password" required class="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+            <div class="mt-1 text-xs text-gray-500">至少 8 位</div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">确认密码</label>
+            <input type="password" name="password_confirmation" class="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+        </div>
+
+        <button type="submit" class="w-full bg-blue-600 text-white rounded py-2 hover:bg-blue-700">注册</button>
+    </form>
+
+    <div class="mt-4 text-sm text-gray-600">
+        已有账号？
+        <a href="/login" class="text-blue-600 hover:underline">去登录</a>
+    </div>
+</div>

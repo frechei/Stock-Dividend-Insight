@@ -12,3 +12,4 @@ gem 'puma'
 gem 'faraday-retry'
 gem 'httplog'
 gem 'sinatra-reloader', groups: [:development]
+gem 'bcrypt'

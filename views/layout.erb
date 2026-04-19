@@ -26,12 +26,23 @@
             <div class="space-x-4">
                 <a href="/" class="hover:text-blue-200">股票列表</a>
                 <a href="/kb" class="hover:text-blue-200">知识库</a>
-                <span class="text-blue-300 text-sm">最后更新: <%= Time.now.strftime('%Y-%m-%d %H:%M') %></span>
+                <% if logged_in? %>
+                    <span class="text-blue-200 text-sm"><%= current_user.email %></span>
+                    <form action="/logout" method="post" class="inline">
+                        <button type="submit" class="hover:text-blue-200 text-sm">退出</button>
+                    </form>
+                <% else %>
+                    <a href="/login" class="hover:text-blue-200">登录</a>
+                    <a href="/signup" class="hover:text-blue-200">注册</a>
+                <% end %>
             </div>
         </div>
     </nav>
 
     <main class="<%= @layout_full_width ? 'w-full' : 'container mx-auto' %> px-3 py-6 sm:px-6">
+        <% if flash %>
+            <div class="mb-4 px-4 py-3 rounded border border-yellow-200 bg-yellow-50 text-yellow-900 text-sm"><%= flash %></div>
+        <% end %>
         <%= yield %>
     </main>
 
