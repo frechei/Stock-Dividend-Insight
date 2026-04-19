@@ -37,11 +37,11 @@
         <% base_params[:exclude_roe_levels] = @exclude_roe_levels unless @exclude_roe_levels.empty? %>
         <% base_params[:exclude_high_debt] = '1' if @exclude_high_debt %>
 
-        <form id="filterForm" method="get" action="/" class="mt-4">
+        <form id="filterForm" method="get" action="/" class="mt-4 text-xs">
             <input type="hidden" id="sortInput" name="sort" value="<%= @sort_param %>">
 
-            <div class="mt-4 text-sm text-gray-600 font-medium">过滤</div>
-            <div class="mt-2 space-y-3 text-sm">
+            <div class="mt-4 text-gray-600 font-medium">过滤</div>
+            <div class="mt-2 space-y-3">
                 <div class="flex flex-wrap items-center gap-3">
                 <label class="flex items-center gap-2 px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer">
                     <input type="checkbox" name="only_div5y" value="1" <%= @only_div5y ? 'checked' : '' %>>
@@ -245,8 +245,8 @@
                 </div>
             </div>
 
-            <div class="mt-4 text-sm text-gray-600 font-medium">排序</div>
-            <div id="sortPalette" class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <div class="mt-4 text-gray-600 font-medium">排序</div>
+            <div id="sortPalette" class="mt-2 flex flex-wrap items-center gap-2">
                 <% current_sort_by_field = @sorts.to_h { |s| [s[:field], s[:order]] } %>
                 <% @allowed_sort_fields.each do |f| %>
                     <% active_order = current_sort_by_field[f] %>
@@ -260,9 +260,9 @@
                 <% end %>
             </div>
 
-            <div class="mt-4 flex flex-wrap items-center gap-3">
-                <a href="/?<%= build_query({ sort: @sort_param }) %>" class="text-blue-600 hover:underline text-sm">清空过滤</a>
-                <a href="/" class="text-blue-600 hover:underline text-sm">清空全部</a>
+            <div class="mt-4 flex flex-wrap items-center gap-3 text-xs">
+                <a href="/?<%= build_query({ sort: @sort_param }) %>" class="text-blue-600 hover:underline">清空过滤</a>
+                <a href="/" class="text-blue-600 hover:underline">清空全部</a>
             </div>
         </form>
 
