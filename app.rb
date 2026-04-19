@@ -23,7 +23,7 @@ get '/' do
     current_price dividend_yield
     turnover_rate volume pe_ttm pe_level pe_percentile pb pb_level pb_percentile roe_jq roe_level total_shares
     peg peg_level net_profit_yoy asset_liability_ratio interest_debt_ratio fcf_yield fcf_ev
-    pos_30d pos_1y pos_3y pos_5y price_position
+    drop_30d pos_30d pos_1y pos_3y pos_5y price_position
   ]
   
   only_div5y = params[:only_div5y].to_s == '1'
@@ -448,6 +448,7 @@ helpers do
       'roe_level' => 'ROE等级',
       'total_shares' => '总股本',
       'pos_30d' => '30d分位',
+      'drop_30d' => '30日跌幅',
       'pos_1y' => '1y分位',
       'pos_3y' => '3y分位',
       'pos_5y' => '5y分位',

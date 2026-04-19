@@ -126,30 +126,27 @@ class StockSyncService
     
     # 3. 同步 K 线
     PriceHistorySyncer.new(incremental: @incremental && !@force_pull, force: @force || @force_pull).sync
+    Stock.where(drop_30d: nil).find_each { |s| PriceMetricsCalculator.calculate(s) }
 
     if @sync_valuation_history
       need_val_scope =
         Stock
-          .joins(:price_histories)
-          .where('price_histories.date >= ?', Date.today - 365)
-          .where('price_histories.pb IS NULL OR price_histories.pe_ttm IS NULL')
+          .left_joins(:price_histories)
+          .where(
+            '((price_histories.date >= :d AND (price_histories.pb IS NULL OR price_histories.pe_ttm IS NULL)) OR (stocks.pe_ttm > 0 AND stocks.pe_percentile IS NULL) OR (stocks.pb > 0 AND stocks.pb_percentile IS NULL))',
+            d: Date.today - 365
+          )
           .distinct
-      need_val_scope =
-        need_val_scope
-          .or(Stock.where('pe_ttm > 0').where(pe_percentile: nil))
-          .or(Stock.where('pb > 0').where(pb_percentile: nil))
       ValuationHistorySyncer.new(scope: need_val_scope, years: @valuation_years, force: @valuation_force, sleep_range: (0.04..0.10)).sync if need_val_scope.exists?
       if !@skip_second_pass
         remaining_val_scope =
           Stock
-            .joins(:price_histories)
-            .where('price_histories.date >= ?', Date.today - 365)
-            .where('price_histories.pb IS NULL OR price_histories.pe_ttm IS NULL')
+            .left_joins(:price_histories)
+            .where(
+              '((price_histories.date >= :d AND (price_histories.pb IS NULL OR price_histories.pe_ttm IS NULL)) OR (stocks.pe_ttm > 0 AND stocks.pe_percentile IS NULL) OR (stocks.pb > 0 AND stocks.pb_percentile IS NULL))',
+              d: Date.today - 365
+            )
             .distinct
-        remaining_val_scope =
-          remaining_val_scope
-            .or(Stock.where('pe_ttm > 0').where(pe_percentile: nil))
-            .or(Stock.where('pb > 0').where(pb_percentile: nil))
         ValuationHistorySyncer.new(scope: remaining_val_scope, years: @valuation_years, force: @valuation_force, sleep_range: (0.12..0.24)).sync if remaining_val_scope.exists?
       end
     end

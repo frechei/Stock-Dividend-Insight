@@ -30,13 +30,19 @@ class PriceMetricsCalculator
     
     high = scope.maximum(:high)
     low = scope.minimum(:low)
+    closes = scope.order(:date).where.not(close: nil).pluck(:close).map { |x| x.to_f }.select { |x| x.finite? && x > 0 }
 
     if high && low
       stock.send("high_#{suffix}=", high)
       stock.send("low_#{suffix}=", low)
+    end
 
-      closes = scope.where.not(close: nil).pluck(:close).map { |x| x.to_f }.select { |x| x.finite? && x > 0 }
+    if closes.any?
       stock.send("pos_#{suffix}=", percentile_for(base_price.to_f, closes))
+      if suffix == '30d'
+        start_close = closes.first
+        stock.drop_30d = start_close && start_close > 0 ? ((start_close - base_price.to_f) / start_close.to_f) * 100.0 : nil
+      end
     end
   end
 

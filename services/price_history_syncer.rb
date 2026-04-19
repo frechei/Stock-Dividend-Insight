@@ -65,22 +65,27 @@ class PriceHistorySyncer
     }
 
     begin
-      conn = Faraday.new(url: url) do |f|
-          f.request :url_encoded
-          f.request :retry, max: 3, interval: 0.05,
-                           interval_randomness: 0.5, backoff_factor: 2,
-                           exceptions: [Faraday::Error, JSON::ParserError]
-          f.adapter Faraday.default_adapter
-        end
+      conn = Faraday.new do |f|
+        f.request :url_encoded
+        f.request :retry, max: 3, interval: 0.05,
+                         interval_randomness: 0.5, backoff_factor: 2,
+                         exceptions: [Faraday::Error, JSON::ParserError]
+        f.adapter Faraday.default_adapter
+      end
 
-      response = conn.get('', params, {
-        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      response = conn.get(url, params, {
+        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer' => 'https://finance.sina.com.cn/',
+        'Connection' => 'close'
       })
       
       raise Faraday::Error, "HTTP #{response.status}" unless response.success?
+      if response.body.to_s.include?('The plain HTTP request was sent to HTTPS port')
+        raise Faraday::Error, 'sina_https_required'
+      end
       
       data = JSON.parse(response.body)
-      return false if data.nil? || (data.respond_to?(:empty?) && data.empty?)
+      return false unless data.is_a?(Array) && !data.empty?
 
       records_created = 0
       data.each do |item|

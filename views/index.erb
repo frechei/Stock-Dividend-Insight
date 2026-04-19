@@ -523,6 +523,7 @@
                         </div>
                     </th>
                     <th class="p-3 border-b border-gray-200 text-center hidden md:table-cell"><%= sort_link('pos_30d', '30d分位') %></th>
+                    <th class="p-3 border-b border-gray-200 text-right hidden md:table-cell"><%= sort_link('drop_30d', '30日跌幅') %></th>
                     <th class="p-3 border-b border-gray-200 text-center hidden md:table-cell"><%= sort_link('pos_1y', '1y分位') %></th>
                     <th class="p-3 border-b border-gray-200 text-center hidden md:table-cell"><%= sort_link('pos_3y', '3y分位') %></th>
                     <th class="p-3 border-b border-gray-200 text-center hidden md:table-cell"><%= sort_link('pos_5y', '5y分位') %></th>
@@ -608,6 +609,13 @@
                         
                         <td class="p-3 text-center <%= position_color(stock.pos_30d) %> hidden md:table-cell">
                             <%= format_ratio_percent(stock.pos_30d) %>
+                        </td>
+                        <td class="p-3 text-right hidden md:table-cell">
+                            <% if stock.drop_30d.nil? %>
+                                <span class="text-gray-400">-</span>
+                            <% else %>
+                                <span class="<%= stock.drop_30d.to_f > 0 ? 'text-red-600 font-semibold' : (stock.drop_30d.to_f < 0 ? 'text-green-600 font-semibold' : 'text-gray-500') %>"><%= format_percent(stock.drop_30d) %></span>
+                            <% end %>
                         </td>
                         <td class="p-3 text-center <%= position_color(stock.pos_1y) %> hidden md:table-cell">
                             <%= format_ratio_percent(stock.pos_1y) %>
