@@ -238,24 +238,24 @@ get '/pools/:id' do
   @pe_hist_counts = stock_ids.empty? ? {} : PriceHistory.where(stock_id: stock_ids).where.not(pe_ttm: nil).group(:stock_id).count
   @pb_hist_counts = stock_ids.empty? ? {} : PriceHistory.where(stock_id: stock_ids).where.not(pb: nil).group(:stock_id).count
   if @snapshot
-    @base_item_by_stock_id =
-      stock_ids.empty? ? {} : @snapshot.pool_snapshot_items.where(stock_id: stock_ids).index_by(&:stock_id)
+    base_items = @snapshot.pool_snapshot_items.where.not(code: nil).to_a
+    @base_item_by_code = base_items.index_by(&:code)
 
-    base_ids = @snapshot.pool_snapshot_items.pluck(:stock_id)
-    current_ids = current_scope.pluck(:id)
+    base_codes = @snapshot.pool_snapshot_items.where.not(code: nil).pluck(:code)
+    current_codes = current_scope.where.not(code: nil).pluck(:code)
 
-    base_set = base_ids.to_set
-    current_set = current_ids.to_set
-    @added_ids = (current_set - base_set).to_a
-    @removed_ids = (base_set - current_set).to_a
+    base_set = base_codes.to_set
+    current_set = current_codes.to_set
+    @added_codes = (current_set - base_set).to_a
+    @removed_codes = (base_set - current_set).to_a
 
-    @added_stocks = @added_ids.empty? ? [] : Stock.where(id: @added_ids).order(:id).to_a
+    @added_stocks = @added_codes.empty? ? [] : Stock.where(code: @added_codes).order(:id).to_a
     @removed_items =
-      @removed_ids.empty? ? [] : @snapshot.pool_snapshot_items.where(stock_id: @removed_ids).order(:id).to_a
+      @removed_codes.empty? ? [] : @snapshot.pool_snapshot_items.where(code: @removed_codes).order(:id).to_a
   else
-    @base_item_by_stock_id = {}
-    @added_ids = []
-    @removed_ids = []
+    @base_item_by_code = {}
+    @added_codes = []
+    @removed_codes = []
     @added_stocks = []
     @removed_items = []
   end
