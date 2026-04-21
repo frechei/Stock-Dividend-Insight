@@ -1,6 +1,7 @@
 require 'date'
 require 'securerandom'
 require 'set'
+require 'kramdown'
 require 'sinatra'
 require 'sinatra/reloader' if development?
 require_relative 'models'
@@ -699,8 +700,42 @@ get '/stocks/:id' do
       .map { |y, cash| { year: y, cash: cash } }
 
   @cn_10y = TreasuryYield.where(country: 'CN', tenor: '10Y').order(date: :desc).first
+  @stock_notes =
+    if logged_in?
+      StockNote.where(stock_id: @stock.id, user_id: current_user.id).order(created_at: :desc)
+    else
+      []
+    end
   
   erb :show
+end
+
+post '/stocks/:id/notes' do
+  require_login!
+  stock = Stock.find(params[:id])
+  body = params[:body].to_s
+  if body.strip.empty?
+    set_flash('内容不能为空')
+    redirect "/stocks/#{stock.id}#notes"
+  end
+
+  StockNote.create!(stock_id: stock.id, user_id: current_user.id, body: body)
+  set_flash('已保存笔记')
+  redirect "/stocks/#{stock.id}#notes"
+end
+
+post '/stocks/:id/notes/:note_id/delete' do
+  require_login!
+  stock_id = params[:id].to_i
+  note_id = params[:note_id].to_i
+  note = StockNote.find_by(id: note_id, stock_id: stock_id, user_id: current_user.id)
+  if note.nil?
+    set_flash('笔记不存在或无权限')
+    redirect "/stocks/#{stock_id}#notes"
+  end
+  note.destroy!
+  set_flash('已删除笔记')
+  redirect "/stocks/#{stock_id}#notes"
 end
 
 helpers do
@@ -808,6 +843,28 @@ helpers do
     v = value.to_f
     return 'text-gray-500' if v.abs < 1e-9
     v > 0 ? 'text-red-600' : 'text-gray-500'
+  end
+
+  def render_markdown(text)
+    md = text.to_s
+    html =
+      Kramdown::Document.new(
+        md,
+        parse_block_html: false,
+        parse_span_html: false
+      ).to_html
+
+    html = html.gsub(/href=(['"])(.*?)\1/i) do
+      quote = Regexp.last_match(1)
+      href = Regexp.last_match(2).to_s.strip
+      if href.match?(/\A(javascript|data|vbscript):/i)
+        "href=#{quote}##{quote}"
+      else
+        "href=#{quote}#{href}#{quote}"
+      end
+    end
+
+    html
   end
 
   def normalized_pool_query_string(query_string)

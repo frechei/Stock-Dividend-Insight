@@ -37,6 +37,7 @@ class Stock < ActiveRecord::Base
   has_many :roe_histories, dependent: :destroy
   has_many :categorizations, dependent: :destroy
   has_many :categories, through: :categorizations
+  has_many :stock_notes, dependent: :destroy
 end
 
 class User < ActiveRecord::Base
@@ -44,6 +45,7 @@ class User < ActiveRecord::Base
   validate :validate_password_on_create
   validate :validate_password_confirmation, if: -> { @password }
   has_many :saved_pools, dependent: :destroy
+  has_many :stock_notes, dependent: :destroy
 
   def email=(value)
     super(value.to_s.strip.downcase)
@@ -148,4 +150,9 @@ end
 class PoolSnapshotItem < ActiveRecord::Base
   belongs_to :pool_snapshot
   belongs_to :stock
+end
+
+class StockNote < ActiveRecord::Base
+  belongs_to :stock
+  belongs_to :user
 end

@@ -43,6 +43,8 @@ GEM
     i18n (1.14.8)
       concurrent-ruby (~> 1.0)
     json (2.19.2)
+    kramdown (2.5.2)
+      rexml (>= 3.4.4)
     logger (1.7.0)
     minitest (6.0.2)
       drb (~> 2.0)
@@ -73,6 +75,7 @@ GEM
       rack (>= 3.0.0)
     rainbow (3.1.1)
     rake (13.3.1)
+    rexml (3.4.4)
     ruby2_keywords (0.0.5)
     securerandom (0.4.1)
     sinatra (4.2.1)
@@ -114,6 +117,7 @@ DEPENDENCIES
   faraday-retry
   httplog
   json
+  kramdown
   pg
   puma
   rake
