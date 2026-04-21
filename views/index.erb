@@ -25,6 +25,16 @@
                 <span class="font-semibold text-gray-800"><%= format_percent(@cn_10y&.yield_pct) %></span>
                 <span class="text-gray-400">(<%= @cn_10y&.date %>)</span>
             </span>
+            <span class="text-gray-300">|</span>
+            <span>
+                沪深300 PB百分位：
+                <span class="font-semibold text-gray-800"><%= @hs300_eval&.pb_percentile.nil? ? '-' : "#{format_decimal(@hs300_eval.pb_percentile.to_f * 100.0, 2)}%" %></span>
+            </span>
+            <span class="text-gray-300">|</span>
+            <span>
+                A500 PB百分位：
+                <span class="font-semibold text-gray-800"><%= @a500_eval&.pb_percentile.nil? ? '-' : "#{format_decimal(@a500_eval.pb_percentile.to_f * 100.0, 2)}%" %></span>
+            </span>
         </div>
 
         <% base_params = { sort: @sort_param } %>

@@ -502,6 +502,8 @@ get '/' do
   @roe_5y_avg_ge_12 = roe_5y_avg_ge_12
   @roe_5y_min_ge_8 = roe_5y_min_ge_8
   @cn_10y = TreasuryYield.where(country: 'CN', tenor: '10Y').order(date: :desc).first
+  @hs300_eval = QiemanIndexEval.where(index_code: '000300.SH').order(eval_date: :desc).first
+  @a500_eval = QiemanIndexEval.where(index_code: '000510.SH').order(eval_date: :desc).first
   @edit_pool_id = nil
   @edit_pool_name = nil
   if logged_in?
