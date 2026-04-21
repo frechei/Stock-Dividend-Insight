@@ -64,6 +64,7 @@
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-700 text-sm leading-relaxed">
             <div class="font-semibold text-gray-800 mb-1">ROE 趋势分（TrendScore，5 年基准）</div>
             <div>目标：同时衡量 ROE 的“向上趋势”“一致性”“稳定性”，输出 0-100 的分数，分数越高越好。</div>
+            <div class="mt-1">范围：0 - 100（当近 5 年年报 ROE 数据不足时不计算，页面显示为 “-”）。</div>
             <div class="mt-2 font-semibold text-gray-800">组成</div>
             <div class="mt-1">1) Theil-Sen 斜率（权重 50%）：用稳健斜率刻画 ROE 的上升/下降速度，抗极端值。</div>
             <div class="mt-1">2) Spearman 相关（权重 30%）：衡量 ROE 随时间的单调性（更接近“逐年变好”）。</div>

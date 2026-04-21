@@ -971,6 +971,7 @@ helpers do
       { field: 'pe_percentile', label: 'PE分位', type: 'ratio', placeholder: '30% 或 0.3' },
       { field: 'pb_percentile', label: 'PB分位', type: 'ratio', placeholder: '30% 或 0.3' },
       { field: 'roe_jq', label: 'ROE(加权)', type: 'pct', placeholder: '10 或 10%' },
+      { field: 'roe_trend_score', label: 'ROE趋势分', type: 'number', placeholder: '70' },
       { field: 'net_profit_yoy', label: '净利同比', type: 'pct', placeholder: '5 或 5%' },
       { field: 'asset_liability_ratio', label: '资产负债率', type: 'pct', placeholder: '60 或 60%' },
       { field: 'interest_debt_ratio', label: '有息负债率', type: 'pct', placeholder: '20 或 20%' },
