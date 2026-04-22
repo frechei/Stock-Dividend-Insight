@@ -4930,3 +4930,97 @@ stocks:
   categories:
   - 显示器件
   - 信息技术
+- code: "688552"
+  name: 航天南湖
+  categories:
+  - 航空装备
+  - 工业
+- code: "600353"
+  name: 旭光电子
+  categories:
+  - 其他电子
+- code: "002651"
+  name: 利君股份
+  categories:
+  - 冶金矿采化工设备
+- code: "300008"
+  name: 天海防务
+  categories:
+  - 船舶制造
+- code: "301592"
+  name: 六九一二
+  categories:
+  - 航空装备
+  - 工业
+- code: "688522"
+  name: 纳睿雷达
+  categories:
+  - 其他电子
+- code: "688543"
+  name: 国科军工
+  categories:
+  - 地面兵装
+- code: "002171"
+  name: 楚江新材
+  categories:
+  - 铜
+- code: "601718"
+  name: 际华集团
+  categories:
+  - 其他服装
+- code: "688439"
+  name: 振华风光
+  categories:
+  - 集成电路
+- code: "600416"
+  name: 湘电股份
+  categories:
+  - 风电设备
+  - 工业
+- code: "301050"
+  name: 雷电微力
+  categories:
+  - 航空装备
+  - 工业
+- code: "000818"
+  name: 航锦科技
+  categories:
+  - 化工
+- code: "600399"
+  name: 抚顺特钢
+  categories:
+  - 特钢
+- code: "002625"
+  name: 光启技术
+  categories:
+  - 汽车零部件
+- code: "300762"
+  name: 上海瀚讯
+  categories:
+  - 地面兵装
+- code: "300777"
+  name: 中简科技
+  categories:
+  - 其他纤维
+- code: "300775"
+  name: 三角防务
+  categories:
+  - 航空装备
+  - 工业
+- code: "601606"
+  name: 长城军工
+  categories:
+  - 地面兵装
+- code: "000547"
+  name: 航天发展
+  categories:
+  - 地面兵装
+- code: "000768"
+  name: 中航西飞
+  categories:
+  - 航空装备
+  - 工业
+- code: "600685"
+  name: 中船防务
+  categories:
+  - 船舶制造
