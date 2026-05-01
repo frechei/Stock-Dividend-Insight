@@ -891,6 +891,9 @@ helpers do
   end
 
   def create_pool_snapshot!(pool)
+    PoolSnapshotItem.reset_column_information
+    snapshot_item_columns = PoolSnapshotItem.column_names.to_set
+
     scope = stock_scope_from_query_string(pool.query_string)
     taken_at = Time.now
     snapshot = pool.pool_snapshots.create!(taken_at: taken_at, total_count: scope.count)
@@ -935,7 +938,7 @@ helpers do
             volume: volume,
             created_at: taken_at,
             updated_at: taken_at
-          }
+          }.select { |k, _| snapshot_item_columns.include?(k.to_s) }
         end
 
       PoolSnapshotItem.insert_all(rows) if rows.any?
