@@ -1036,6 +1036,27 @@ get '/stocks/:id' do
       .reverse
       .map { |y, cash| { year: y, cash: cash } }
 
+  @dividend_cash_per_share_year = annual_div_cash.keys.max
+  @dividend_cash_per_share_latest_year =
+    if @dividend_cash_per_share_year
+      annual_div_cash[@dividend_cash_per_share_year].to_f
+    else
+      nil
+    end
+  @dividend_buy_ladders =
+    if @dividend_cash_per_share_latest_year && @dividend_cash_per_share_latest_year > 0
+      [
+        { label: '买入', target_yield: 0.05 },
+        { label: '加仓', target_yield: 0.06 },
+        { label: '重仓', target_yield: 0.07 }
+      ].map do |x|
+        price = @dividend_cash_per_share_latest_year / x[:target_yield]
+        x.merge(price: price)
+      end
+    else
+      []
+    end
+
   @cn_10y = TreasuryYield.where(country: 'CN', tenor: '10Y').order(date: :desc).first
   @stock_notes =
     if logged_in?
