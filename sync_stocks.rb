@@ -19,6 +19,7 @@ require_relative 'services/finance_snapshot_syncer'
 require_relative 'services/fcf_index_constituents_appender'
 require_relative 'services/boshi_hldw100_constituents_appender'
 require_relative 'services/macro_metric_syncer'
+require_relative 'services/future_dividend_syncer'
 
 class StockSyncService
   def initialize(incremental: false, force: false, force_pull: false, backfill_cn10y: false, add_csi500: false, add_a500: false, add_kc50: false, add_tech50: false, add_ai50: false, add_dividend_etf_constituents: false, add_boshi_hldw100: false, add_fcf: false, add_theme_etf_constituents: false, backfill_fcf: false, skip_second_pass: false, fill_categories: false, sync_valuation_history: true, valuation_years: 10, valuation_force: false, sync_roe_history: true, roe_years: 12)
@@ -177,6 +178,8 @@ class StockSyncService
     
     # 4. 同步分红数据
     DividendSyncer.new(force: @force_pull, scope: stock_scope).sync
+
+    FutureDividendSyncer.new(days_back: 30, days_ahead: 3650).sync
     
     # 5. 量化计算及打标
     ValuationCalculator.new.calculate_all

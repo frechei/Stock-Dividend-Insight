@@ -858,7 +858,75 @@ get '/dividend_layers' do
   @edit_pool_id = nil
   @edit_pool_name = nil
 
+  @layer_future_dividends = []
+  if codes.any?
+    start_date = Date.today - 30
+    end_date = Date.today + 365
+    stock_ids = Stock.where(code: codes).pluck(:id)
+    @layer_future_dividends =
+      FutureDividend
+        .includes(:stock)
+        .where(stock_id: stock_ids)
+        .where(ex_dividend_date: start_date..end_date)
+        .order(ex_dividend_date: :asc, security_code: :asc)
+        .limit(500)
+        .map do |fd|
+          {
+            stock_id: fd.stock_id,
+            code: (fd.security_code.to_s.strip.empty? ? fd.stock&.code.to_s : fd.security_code.to_s).rjust(6, '0'),
+            name: fd.security_name.to_s.strip.empty? ? fd.stock&.name.to_s : fd.security_name.to_s,
+            ex_dividend_date: fd.ex_dividend_date,
+            equity_record_date: fd.equity_record_date,
+            notice_date: fd.notice_date,
+            cash_dividend_per_share: fd.cash_dividend_per_share,
+            dividend_yield_pct: fd.dividend_yield_pct,
+            plan_description: fd.plan_description,
+            progress: fd.progress
+          }
+        end
+  end
+
   erb :index
+end
+
+get '/dividends_future' do
+  @base_path = request.path_info
+  @layout_full_width = true
+  @page_title = '全市场未来分红'
+
+  days = params[:days].to_i
+  days = 365 if days <= 0
+  days = 3650 if days > 3650
+  limit = params[:limit].to_i
+  limit = 1000 if limit <= 0
+  limit = 5000 if limit > 5000
+  @min_yield = params[:min_yield].to_f
+  @min_yield = 3.0 if @min_yield <= 0
+
+  start_date = Date.today
+  end_date = Date.today + days
+  @future_dividends =
+    FutureDividend
+      .includes(:stock)
+      .where(ex_dividend_date: start_date..end_date)
+      .where('dividend_yield_pct > ?', @min_yield)
+      .order(ex_dividend_date: :asc, security_code: :asc)
+      .limit(limit)
+      .map do |fd|
+        {
+          code: (fd.security_code.to_s.strip.empty? ? fd.stock&.code.to_s : fd.security_code.to_s).rjust(6, '0'),
+          name: fd.security_name.to_s.strip.empty? ? fd.stock&.name.to_s : fd.security_name.to_s,
+          ex_dividend_date: fd.ex_dividend_date,
+          equity_record_date: fd.equity_record_date,
+          notice_date: fd.notice_date,
+          cash_dividend_per_share: fd.cash_dividend_per_share,
+          dividend_yield_pct: fd.dividend_yield_pct,
+          plan_description: fd.plan_description,
+          progress: fd.progress
+        }
+      end
+
+  erb :dividends_future
 end
 
 get '/macro' do
@@ -1102,6 +1170,7 @@ helpers do
   def allowed_sort_fields_for_list
     %w[
       current_price dividend_yield
+      avg_dividend_yield_3y
       drop_to_buy_pct
       turnover_rate volume pe_ttm pe_level pe_percentile pb pb_level pb_percentile roe_jq roe_level total_shares
       peg peg_level net_profit_yoy asset_liability_ratio interest_debt_ratio fcf_yield fcf_ev
@@ -1625,6 +1694,7 @@ helpers do
       'code' => '代码',
       'current_price' => '最新价',
       'dividend_yield' => '历史股息率',
+      'avg_dividend_yield_3y' => '近3年平均股息率',
       'drop_to_buy_pct' => '到买入价需跌幅(5%)',
       'dividend_payout_ratio' => '分红率',
       'turnover_rate' => '换手率',

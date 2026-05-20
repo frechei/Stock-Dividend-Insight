@@ -34,6 +34,7 @@ ActiveRecord::Base.establish_connection(ENV['DATABASE_URL'])
 class Stock < ActiveRecord::Base
   has_many :price_histories, dependent: :destroy
   has_many :dividends, dependent: :destroy
+  has_many :future_dividends, dependent: :destroy
   has_many :roe_histories, dependent: :destroy
   has_many :categorizations, dependent: :destroy
   has_many :categories, through: :categorizations
@@ -113,6 +114,10 @@ end
 # - rights_issue: 每股转增
 # - dividend_yield: 股息率
 class Dividend < ActiveRecord::Base
+  belongs_to :stock
+end
+
+class FutureDividend < ActiveRecord::Base
   belongs_to :stock
 end
 

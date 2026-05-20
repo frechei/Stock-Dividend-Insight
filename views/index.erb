@@ -569,6 +569,12 @@
                     </th>
                     <th class="p-3 border-b border-gray-200 text-right hidden md:table-cell">
                         <div class="inline-flex items-center gap-1 justify-end w-full">
+                            <%= sort_link('avg_dividend_yield_3y', '近3年平均股息率') %>
+                            <a href="/kb/dividend" class="text-gray-400 hover:text-blue-600 normal-case" title="近3个完整年度的股息率均值（按年度累计每股派现 / 当年均价计算）">?</a>
+                        </div>
+                    </th>
+                    <th class="p-3 border-b border-gray-200 text-right hidden md:table-cell">
+                        <div class="inline-flex items-center gap-1 justify-end w-full">
                             <%= sort_link('drop_to_buy_pct', '到买入价需跌幅') %>
                             <a href="/kb/dividend" class="text-gray-400 hover:text-blue-600 normal-case" title="按最近一年每股股息(DPS)反推 5% 股息率买入价，再计算当前价距买入价的跌幅">?</a>
                         </div>
@@ -691,6 +697,7 @@
                         </td>
                         <td class="p-3 text-right hidden md:table-cell"><%= format_decimal(stock.current_price, 2) %></td>
                         <td class="p-3 text-right font-bold text-blue-700"><%= stock.dividend_yield.nil? ? '未同步' : format_percent(stock.dividend_yield) %></td>
+                        <td class="p-3 text-right hidden md:table-cell"><%= stock.respond_to?(:avg_dividend_yield_3y) && !stock.avg_dividend_yield_3y.nil? ? format_percent(stock.avg_dividend_yield_3y) : '-' %></td>
                         <td class="p-3 text-right hidden md:table-cell">
                             <%
                                 pct =
@@ -824,6 +831,54 @@
         <% end %>
     </div>
 </div>
+
+<% if base_path == '/dividend_layers' %>
+    <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">近期/未来分红（最近30天 + 未来365天，按除权除息日正序）</h2>
+        <% if @layer_future_dividends && @layer_future_dividends.any? %>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-700 text-xs uppercase tracking-wider">
+                            <th class="p-3 border-b border-gray-200">除权除息日</th>
+                            <th class="p-3 border-b border-gray-200">股票</th>
+                            <th class="p-3 border-b border-gray-200 text-center hidden md:table-cell">股权登记日</th>
+                            <th class="p-3 border-b border-gray-200 text-center hidden md:table-cell">公告日</th>
+                            <th class="p-3 border-b border-gray-200 text-right">每股派现(元)</th>
+                            <th class="p-3 border-b border-gray-200 text-right hidden md:table-cell">股息率</th>
+                            <th class="p-3 border-b border-gray-200 text-center hidden md:table-cell">进度</th>
+                            <th class="p-3 border-b border-gray-200">方案</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-600">
+                        <% @layer_future_dividends.each do |row| %>
+                            <% passed = row[:ex_dividend_date] && row[:ex_dividend_date] < Date.today %>
+                            <tr class="hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 <%= passed ? 'opacity-60' : '' %>">
+                                <td class="p-3 font-mono text-gray-700"><%= row[:ex_dividend_date] %></td>
+                                <td class="p-3">
+                                    <% if row[:stock_id] %>
+                                        <a href="/stocks/<%= row[:stock_id] %>" class="text-blue-600 hover:text-blue-800 hover:underline"><%= row[:name] %></a>
+                                    <% else %>
+                                        <span class="text-gray-800"><%= row[:name] %></span>
+                                    <% end %>
+                                    <div class="text-xs text-gray-400 font-mono"><%= row[:code] %></div>
+                                </td>
+                                <td class="p-3 text-center hidden md:table-cell text-gray-500"><%= row[:equity_record_date] || '-' %></td>
+                                <td class="p-3 text-center hidden md:table-cell text-gray-500"><%= row[:notice_date] || '-' %></td>
+                                <td class="p-3 text-right font-semibold text-gray-800"><%= row[:cash_dividend_per_share].nil? ? '-' : format_decimal(row[:cash_dividend_per_share], 4) %></td>
+                                <td class="p-3 text-right hidden md:table-cell font-semibold text-green-700"><%= row[:dividend_yield_pct].nil? ? '-' : "#{format_decimal(row[:dividend_yield_pct], 2)}%" %></td>
+                                <td class="p-3 text-center hidden md:table-cell text-gray-500"><%= row[:progress].to_s.strip.empty? ? '-' : row[:progress] %></td>
+                                <td class="p-3 text-gray-700"><%= row[:plan_description].to_s.strip.empty? ? '-' : row[:plan_description] %></td>
+                            </tr>
+                        <% end %>
+                    </tbody>
+                </table>
+            </div>
+        <% else %>
+            <div class="text-sm text-gray-500">暂无未来分红数据</div>
+        <% end %>
+    </div>
+<% end %>
 
 <% if @layer_index_series && @layer_index_series.any? %>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

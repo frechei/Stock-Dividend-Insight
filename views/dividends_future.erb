@@ -1,0 +1,67 @@
+<div class="space-y-4">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900"><%= @page_title || '全市场未来分红' %></h1>
+                <div class="text-sm text-gray-500 mt-1">
+                    仅展示除权除息日在未来窗口内的记录（数据源：东方财富分红送转）。
+                </div>
+            </div>
+            <form method="get" action="<%= @base_path || request.path_info %>" class="flex flex-wrap items-end gap-3 text-sm">
+                <label class="flex items-center gap-2">
+                    <span class="text-gray-600">未来天数</span>
+                    <input name="days" value="<%= params[:days].to_s.strip.empty? ? '365' : params[:days].to_s %>" class="w-24 px-2 py-1 border border-gray-200 rounded">
+                </label>
+                <label class="flex items-center gap-2">
+                    <span class="text-gray-600">最多条数</span>
+                    <input name="limit" value="<%= params[:limit].to_s.strip.empty? ? '1000' : params[:limit].to_s %>" class="w-24 px-2 py-1 border border-gray-200 rounded">
+                </label>
+                <label class="flex items-center gap-2">
+                    <span class="text-gray-600">股息率≥%</span>
+                    <input name="min_yield" value="<%= @min_yield ? format_decimal(@min_yield, 2) : '3.00' %>" class="w-24 px-2 py-1 border border-gray-200 rounded">
+                </label>
+                <button type="submit" class="px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700">刷新</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <% if @future_dividends && @future_dividends.any? %>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-700 text-xs uppercase tracking-wider">
+                            <th class="p-3 border-b border-gray-200">除权除息日</th>
+                            <th class="p-3 border-b border-gray-200">股票</th>
+                            <th class="p-3 border-b border-gray-200 text-center hidden md:table-cell">股权登记日</th>
+                            <th class="p-3 border-b border-gray-200 text-center hidden md:table-cell">公告日</th>
+                            <th class="p-3 border-b border-gray-200 text-right">每股派现(元)</th>
+                            <th class="p-3 border-b border-gray-200 text-right hidden md:table-cell">股息率</th>
+                            <th class="p-3 border-b border-gray-200 text-center hidden md:table-cell">进度</th>
+                            <th class="p-3 border-b border-gray-200">方案</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-600">
+                        <% @future_dividends.each do |row| %>
+                            <tr class="hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100">
+                                <td class="p-3 font-mono text-gray-700"><%= row[:ex_dividend_date] %></td>
+                                <td class="p-3">
+                                    <a href="/?adv_field[]=code&adv_op[]==&adv_value[]=<%= row[:code] %>" class="text-blue-600 hover:text-blue-800 hover:underline"><%= row[:name] %></a>
+                                    <div class="text-xs text-gray-400 font-mono"><%= row[:code] %></div>
+                                </td>
+                                <td class="p-3 text-center hidden md:table-cell text-gray-500"><%= row[:equity_record_date] || '-' %></td>
+                                <td class="p-3 text-center hidden md:table-cell text-gray-500"><%= row[:notice_date] || '-' %></td>
+                                <td class="p-3 text-right font-semibold text-gray-800"><%= row[:cash_dividend_per_share].nil? ? '-' : format_decimal(row[:cash_dividend_per_share], 4) %></td>
+                                <td class="p-3 text-right hidden md:table-cell font-semibold text-green-700"><%= row[:dividend_yield_pct].nil? ? '-' : "#{format_decimal(row[:dividend_yield_pct], 2)}%" %></td>
+                                <td class="p-3 text-center hidden md:table-cell text-gray-500"><%= row[:progress].to_s.strip.empty? ? '-' : row[:progress] %></td>
+                                <td class="p-3 text-gray-700"><%= row[:plan_description].to_s.strip.empty? ? '-' : row[:plan_description] %></td>
+                            </tr>
+                        <% end %>
+                    </tbody>
+                </table>
+            </div>
+        <% else %>
+            <div class="text-sm text-gray-500">暂无未来分红数据</div>
+        <% end %>
+    </div>
+</div>

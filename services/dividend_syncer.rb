@@ -121,10 +121,44 @@ class DividendSyncer
       else
         stock.dividend_yield = nil
       end
+
+      if stock.has_attribute?(:avg_dividend_yield_3y)
+        years = [latest_year - 2, latest_year - 1, latest_year]
+        yields = []
+        years.each do |y|
+          dps = stock.dividends.where('EXTRACT(YEAR FROM report_date) = ?', y).sum(:cash_dividend).to_f
+          if dps <= 0
+            yields = []
+            break
+          end
+
+          range = Date.new(y, 1, 1)..Date.new(y, 12, 31)
+          ps = stock.price_histories.where(date: range).where.not(close: nil)
+          avg_close = ps.average(:close)
+          avg_close = avg_close.to_f if avg_close
+          if avg_close.nil? || avg_close.to_f <= 0
+            last_close = ps.order(date: :desc).limit(1).pluck(:close).first
+            avg_close = last_close.to_f if last_close
+          end
+          if avg_close.nil? || avg_close.to_f <= 0
+            yields = []
+            break
+          end
+
+          yields << (dps / avg_close.to_f) * 100.0
+        end
+
+        if yields.size == 3
+          stock.avg_dividend_yield_3y = yields.sum / 3.0
+        else
+          stock.avg_dividend_yield_3y = nil
+        end
+      end
     else
       stock.dividend_yield = nil
       stock.dividend_cash_per_share_year = nil if stock.has_attribute?(:dividend_cash_per_share_year)
       stock.dividend_cash_per_share_latest_year = nil if stock.has_attribute?(:dividend_cash_per_share_latest_year)
+      stock.avg_dividend_yield_3y = nil if stock.has_attribute?(:avg_dividend_yield_3y)
     end
     stock.save! if stock.changed?
 
