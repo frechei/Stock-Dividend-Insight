@@ -449,7 +449,7 @@ rows_out.each do |r|
   cur_price = r[:current_price].to_f
   cur_price_ok = r[:current_price] && cur_price.finite?
 
-  html << "<tr class=\"row-click main\" data-id=\"#{key}\" data-core=\"#{r[:is_core] ? 1 : 0}\">"
+  html << "<tr class=\"row-click main\" data-id=\"#{key}\" data-core=\"#{r[:is_core] ? 1 : 0}\" data-avg3y=\"#{r[:avg_dividend_yield_3y]}\" data-min3y=\"#{r[:min_dividend_yield_3y]}\">"
   html << "<td class=\"name-code\" data-label=\"名称/代码\" data-v=\"#{namecode}\">#{r[:name]}<div class=\"code\">#{r[:code]}</div></td>"
   html << "<td class=\"right\" data-label=\"最新价\" data-v=\"#{r[:current_price]}\">#{format_num(r[:current_price], 2)}</td>"
   html << "<td class=\"right\" data-label=\"股息率\" data-v=\"#{r[:dividend_yield]}\"><div class=\"yield-lines\"><span><span style=\"color:#666\">新</span> #{format_pct(r[:dividend_yield], 2)}</span><span><span style=\"color:#666\">均</span> #{format_pct(r[:avg_dividend_yield_3y], 2)}</span><span><span style=\"color:#666\">低</span> #{format_pct(r[:min_dividend_yield_3y], 2)}</span></div></td>"
@@ -562,6 +562,15 @@ html << <<~HTML
         }
         return String(v);
       }
+      function getRowAttrVal(tr, key, type){
+        const v = tr.getAttribute('data-' + key);
+        if(v===null||v==='') return null;
+        if(type==='num'){
+          const n = Number(v);
+          return Number.isFinite(n) ? n : null;
+        }
+        return String(v);
+      }
       function sortTable(table, key, type, dir){
         const tbody = table.querySelector('tbody');
         const mains = Array.from(tbody.querySelectorAll('tr.main'));
@@ -572,8 +581,8 @@ html << <<~HTML
           return { m, d: detail };
         });
         items.sort((a,b)=>{
-          const av = getVal(a.m.children[idx], type);
-          const bv = getVal(b.m.children[idx], type);
+          const av = idx >= 0 ? getVal(a.m.children[idx], type) : getRowAttrVal(a.m, key, type);
+          const bv = idx >= 0 ? getVal(b.m.children[idx], type) : getRowAttrVal(b.m, key, type);
           if(av===null && bv===null) return 0;
           if(av===null) return 1;
           if(bv===null) return -1;

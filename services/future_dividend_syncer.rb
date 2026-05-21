@@ -55,14 +55,19 @@ class FutureDividendSyncer
         filter: "(EX_DIVIDEND_DATE>='#{start_date.strftime('%Y-%m-%d')}') AND (EX_DIVIDEND_DATE<='#{end_date.strftime('%Y-%m-%d')}')"
       }
 
-      resp = conn.get('/api/data/v1/get', params, headers)
-      json = JSON.parse(resp.body) rescue {}
-      data = json.dig('result', 'data') || []
-      break if data.empty?
-      all_rows.concat(data)
-      page_number += 1
-      break if page_number > 80
-      sleep(rand(@sleep_range)) if @sleep_range
+      begin
+        resp = conn.get('/api/data/v1/get', params, headers)
+        json = JSON.parse(resp.body) rescue {}
+        data = json.dig('result', 'data') || []
+        break if data.empty?
+        all_rows.concat(data)
+        page_number += 1
+        break if page_number > 80
+        sleep(rand(@sleep_range)) if @sleep_range
+      rescue Faraday::Error, StandardError => e
+        puts "future_dividend_fetch_error page=#{page_number} error=#{e.class}: #{e.message}"
+        break
+      end
     end
 
     now = Time.now

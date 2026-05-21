@@ -1,5 +1,6 @@
 require 'date'
 require 'faraday'
+require 'faraday/retry'
 require 'faraday/net_http_persistent'
 require 'json'
 
@@ -14,6 +15,9 @@ class ValuationHistorySyncer
   def sync
     conn = Faraday.new do |f|
       f.request :url_encoded
+      f.request :retry, max: 3, interval: 0.05,
+                       interval_randomness: 0.5, backoff_factor: 2,
+                       exceptions: [Faraday::Error, JSON::ParserError]
       f.adapter :net_http_persistent
     end
 
@@ -88,5 +92,8 @@ class ValuationHistorySyncer
     end
 
     updated
+  rescue Faraday::Error, StandardError => e
+    puts "valuation_history_sync_error code=#{stock.code} error=#{e.class}: #{e.message}"
+    nil
   end
 end

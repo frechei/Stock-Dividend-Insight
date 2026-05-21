@@ -50,10 +50,26 @@ jobs:
         run: bundle exec rake migrate
 
       - name: Sync gt3
-        run: bundle exec ruby sync_stocks.rb --gt3
+        run: |
+          for i in 1 2 3; do
+            if bundle exec ruby sync_stocks.rb --gt3; then
+              exit 0
+            fi
+            echo "sync failed (attempt=${i}), retrying..."
+            sleep 10
+          done
+          exit 1
 
       - name: Generate static page
-        run: bundle exec ruby scripts/gt3_pages.rb
+        run: |
+          for i in 1 2 3; do
+            if bundle exec ruby scripts/gt3_pages.rb; then
+              exit 0
+            fi
+            echo "generate failed (attempt=${i}), retrying..."
+            sleep 3
+          done
+          exit 1
 
       - name: Commit generated files
         run: |
