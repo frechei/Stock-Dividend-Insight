@@ -249,11 +249,6 @@ stocks:
   categories:
   - 白酒
   - 消费
-- code: "002603"
-  name: 以岭药业
-  categories:
-  - 中药
-  - 医药卫生
 - code: "002056"
   name: 横店东磁
   categories:
@@ -442,10 +437,6 @@ stocks:
   categories:
   - 白酒
   - 消费
-- code: "601156"
-  name: 东航物流
-  categories:
-  - 物流
 - code: "002966"
   name: 苏州银行
   categories:
@@ -712,11 +703,6 @@ stocks:
   categories:
   - 机场
   - 交通运输
-- code: "002714"
-  name: 牧原股份
-  categories:
-  - 养殖业
-  - 消费
 - code: "605499"
   name: 东鹏饮料
   categories:
@@ -809,10 +795,6 @@ stocks:
   categories:
   - 电力
   - 公用事业
-- code: "603049"
-  name: 中策橡胶
-  categories:
-  - 轮胎
 - code: "002249"
   name: 大洋电机
   categories:

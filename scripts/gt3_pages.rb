@@ -35,12 +35,37 @@ def format_ratio_pct(v, precision = 0)
   format("%.#{precision}f%%", x * 100.0)
 end
 
-def format_score_half(v)
+def format_yi(v, precision = 1)
   return '' if v.nil?
   x = v.to_f
   return '' unless x.finite?
-  r = (x * 2.0).round / 2.0
-  ((r - r.round).abs < 1e-9) ? r.round.to_s : format('%.1f', r)
+  format("%.#{precision}f亿", x / 100_000_000.0)
+end
+
+def format_wanshou(v, precision = 2)
+  return '' if v.nil?
+  x = v.to_f
+  return '' unless x.finite?
+  format("%.#{precision}f万手", x / 10_000.0)
+end
+
+def format_yigu(v, precision = 2)
+  return '' if v.nil?
+  x = v.to_f
+  return '' unless x.finite?
+  format("%.#{precision}f亿股", x / 100_000_000.0)
+end
+
+def peg_level_label(level)
+  case level.to_i
+  when 1 then '极低估成长'
+  when 2 then '优质成长'
+  when 3 then '合理'
+  when 4 then '偏贵'
+  when 5 then '负增长'
+  else
+    ''
+  end
 end
 
 CORE_CATEGORY_TOKENS = %w[
@@ -84,19 +109,44 @@ yml_rows =
 
 codes = yml_rows.map { |x| x[:code] }.uniq
 
-has_consecutive_dividend_years = Stock.column_names.include?('consecutive_dividend_years')
-stock_pluck_keys = [
-  :id, :code, :name,
-  :buy_score, :avg_dividend_yield_3y, :dividend_yield
-]
-stock_pluck_keys << :consecutive_dividend_years if has_consecutive_dividend_years
-stock_pluck_keys.concat(
-  [
-    :dividend_cash_per_share_latest_year, :current_price,
-    :pe_percentile, :pb_percentile, :price_position,
-    :roe_jq, :drop_30d, :asset_liability_ratio, :fcf_yield
-  ]
-)
+stock_cols = Stock.column_names.to_h { |c| [c, true] }
+has_consecutive_dividend_years = stock_cols['consecutive_dividend_years']
+
+stock_pluck_keys = [:id, :code, :name]
+[
+  :avg_dividend_yield_3y,
+  :dividend_yield,
+  :consecutive_dividend_years,
+  :dividend_cash_per_share_latest_year,
+  :current_price,
+  :turnover_rate,
+  :market_cap,
+  :volume,
+  :avg_price,
+  :dividend_payout_ratio,
+  :pos_30d,
+  :pe_ttm,
+  :pe_percentile,
+  :valuation_label,
+  :peg,
+  :peg_level,
+  :net_profit_yoy,
+  :finance_report_date,
+  :pb,
+  :pb_percentile,
+  :drop_30d,
+  :asset_liability_ratio,
+  :interest_debt_ratio,
+  :fcf_yield,
+  :fcf_ev,
+  :fcff_back,
+  :roe_jq,
+  :roe_5y_avg_ge_12,
+  :roe_5y_min_ge_8,
+  :total_shares
+].each do |k|
+  stock_pluck_keys << k if stock_cols[k.to_s]
+end
 
 stocks =
   Stock
@@ -108,19 +158,36 @@ stocks =
         id: v[:id],
         code: v[:code].to_s.rjust(6, '0'),
         name: v[:name].to_s,
-        buy_score: v[:buy_score]&.to_f,
         avg_dividend_yield_3y: v[:avg_dividend_yield_3y]&.to_f,
         dividend_yield: v[:dividend_yield]&.to_f,
         consecutive_dividend_years: has_consecutive_dividend_years ? v[:consecutive_dividend_years]&.to_i : nil,
         dividend_cash_per_share_latest_year: v[:dividend_cash_per_share_latest_year]&.to_f,
         current_price: v[:current_price]&.to_f,
+        turnover_rate: v[:turnover_rate]&.to_f,
+        market_cap: v[:market_cap]&.to_f,
+        volume: v[:volume]&.to_f,
+        avg_price: v[:avg_price]&.to_f,
+        dividend_payout_ratio: v[:dividend_payout_ratio]&.to_f,
+        pos_30d: v[:pos_30d]&.to_f,
+        pe_ttm: v[:pe_ttm]&.to_f,
         pe_percentile: v[:pe_percentile]&.to_f,
+        valuation_label: v[:valuation_label].to_s,
+        peg: v[:peg]&.to_f,
+        peg_level: v[:peg_level]&.to_i,
+        net_profit_yoy: v[:net_profit_yoy]&.to_f,
+        finance_report_date: v[:finance_report_date]&.to_s,
+        pb: v[:pb]&.to_f,
         pb_percentile: v[:pb_percentile]&.to_f,
-        price_position: v[:price_position]&.to_f,
-        roe_jq: v[:roe_jq]&.to_f,
         drop_30d: v[:drop_30d]&.to_f,
         asset_liability_ratio: v[:asset_liability_ratio]&.to_f,
-        fcf_yield: v[:fcf_yield]&.to_f
+        interest_debt_ratio: v[:interest_debt_ratio]&.to_f,
+        fcf_yield: v[:fcf_yield]&.to_f,
+        fcf_ev: v[:fcf_ev]&.to_f,
+        fcff_back: v[:fcff_back]&.to_f,
+        roe_jq: v[:roe_jq]&.to_f,
+        roe_5y_avg_ge_12: v[:roe_5y_avg_ge_12] == true,
+        roe_5y_min_ge_8: v[:roe_5y_min_ge_8] == true,
+        total_shares: v[:total_shares]&.to_f
       }
     end
 
@@ -178,7 +245,83 @@ rows_out =
     end
 
 rows_out.sort_by! do |x|
-  [-(x[:buy_score] || 0).to_f, -(x[:dividend_yield] || 0).to_f, x[:code]]
+  [-(x[:dividend_payout_ratio] || 0).to_f, -(x[:dividend_yield] || 0).to_f, x[:code]]
+end
+
+consecutive_map = {}
+begin
+  conn = ActiveRecord::Base.connection
+  ids = rows_out.map { |x| x[:id] }.compact.uniq
+  if ids.any? && conn.data_source_exists?('dividends')
+    sums =
+      Dividend
+        .where(stock_id: ids)
+        .group(:stock_id)
+        .group(Arel.sql('EXTRACT(YEAR FROM report_date)'))
+        .sum(:cash_dividend)
+
+    per_year_by_sid = Hash.new { |h, k| h[k] = Hash.new(0.0) }
+    sums.each do |(sid, year), cash|
+      y = year.to_i
+      per_year_by_sid[sid][y] = cash.to_f
+    end
+
+    per_year_by_sid.each do |sid, per_year|
+      years = per_year.select { |_, v| v.to_f > 0.0 }.keys
+      next if years.empty?
+      y = years.max
+      n = 0
+      while per_year[y - n].to_f > 0.0
+        n += 1
+      end
+      consecutive_map[sid] = n
+    end
+  end
+rescue StandardError
+  consecutive_map = {}
+end
+
+rows_out.each do |r|
+  next if r[:consecutive_dividend_years] && r[:consecutive_dividend_years].to_i > 0
+  v = consecutive_map[r[:id]]
+  r[:consecutive_dividend_years] = v if v && v.to_i > 0
+end
+
+roe_5y = {}
+begin
+  conn = ActiveRecord::Base.connection
+  if conn.data_source_exists?('roe_histories')
+    pairs =
+      RoeHistory
+        .where(stock_id: rows_out.map { |x| x[:id] }.uniq, report_type: '年报')
+        .where.not(roe_jq: nil)
+        .order(stock_id: :asc, report_date: :desc)
+        .pluck(:stock_id, :roe_jq)
+    grouped = Hash.new { |h, k| h[k] = [] }
+    pairs.each do |sid, v|
+      a = grouped[sid]
+      next if a.size >= 5
+      f = v.to_f
+      next unless f.finite?
+      a << f
+    end
+    roe_5y = grouped.transform_values do |arr|
+      if arr.size >= 5
+        { avg: arr.sum / arr.size.to_f, min: arr.min }
+      else
+        { avg: nil, min: nil }
+      end
+    end
+  end
+rescue StandardError
+  roe_5y = {}
+end
+
+rows_out.each do |r|
+  s = roe_5y[r[:id]]
+  next unless s
+  r[:roe_5y_avg] = s[:avg]
+  r[:roe_5y_min] = s[:min]
 end
 
 stock_ids = rows_out.map { |x| x[:id] }.uniq
@@ -273,11 +416,11 @@ html = <<~HTML
           <th class="right" data-k="price" data-t="num">最新价</th>
           <th class="right" data-k="avg3y" data-t="num">3年均息率</th>
           <th class="right" data-k="dy" data-t="num">最新股息率</th>
+          <th class="right" data-k="payout" data-t="num">分红率</th>
           <th class="right" data-k="cdy" data-t="num">连续分红(年)</th>
           <th class="right" data-k="p5" data-t="num">首仓价(5%)</th>
           <th class="right" data-k="p6" data-t="num">加仓价(6%)</th>
           <th class="right" data-k="p7" data-t="num">重仓价(7%)</th>
-          <th class="right" data-k="score" data-t="num">评分</th>
         </tr>
       </thead>
       <tbody>
@@ -294,6 +437,7 @@ rows_out.each do |r|
   html << "<td class=\"right\" data-v=\"#{r[:current_price]}\">#{format_num(r[:current_price], 2)}</td>"
   html << "<td class=\"right\" data-v=\"#{r[:avg_dividend_yield_3y]}\">#{format_pct(r[:avg_dividend_yield_3y], 2)}</td>"
   html << "<td class=\"right\" data-v=\"#{r[:dividend_yield]}\">#{format_pct(r[:dividend_yield], 2)}</td>"
+  html << "<td class=\"right\" data-v=\"#{r[:dividend_payout_ratio]}\">#{format_pct(r[:dividend_payout_ratio], 2)}</td>"
   html << "<td class=\"right\" data-v=\"#{r[:consecutive_dividend_years]}\">#{r[:consecutive_dividend_years].to_i if r[:consecutive_dividend_years]}</td>"
   hit5 = cur_price_ok && r[:buy_price_5] && cur_price <= r[:buy_price_5].to_f
   hit6 = cur_price_ok && r[:buy_price_6] && cur_price <= r[:buy_price_6].to_f
@@ -301,20 +445,41 @@ rows_out.each do |r|
   html << "<td class=\"right#{hit5 ? ' price-hit' : ''}\" data-v=\"#{r[:buy_price_5]}\">#{format_num(r[:buy_price_5], 2)}</td>"
   html << "<td class=\"right#{hit6 ? ' price-hit' : ''}\" data-v=\"#{r[:buy_price_6]}\">#{format_num(r[:buy_price_6], 2)}</td>"
   html << "<td class=\"right#{hit7 ? ' price-hit' : ''}\" data-v=\"#{r[:buy_price_7]}\">#{format_num(r[:buy_price_7], 2)}</td>"
-  html << "<td class=\"right\" data-v=\"#{r[:buy_score]}\">#{format_score_half(r[:buy_score])}</td>"
   html << "</tr>\n"
 
   html << "<tr class=\"detail-row row-hidden\" data-for=\"#{key}\">"
   html << "<td class=\"detail\" colspan=\"9\">"
   html << "<div class=\"detail-card\">"
   html << "<div class=\"kv\">"
+  html << "<div class=\"kv-item\"><b>换手率</b><span>#{format_pct(r[:turnover_rate], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>总市值</b><span>#{format_yi(r[:market_cap], 1)}</span></div>"
+  html << "<div class=\"kv-item\"><b>成交量</b><span>#{format_wanshou(r[:volume], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>均价</b><span>#{r[:avg_price] ? "¥#{format_num(r[:avg_price], 2)}" : ''}</span></div>"
   html << "<div class=\"kv-item\"><b>最新年度DPS</b><span>#{format_num(r[:dividend_cash_per_share_latest_year], 4)}</span></div>"
+  html << "<div class=\"kv-item\"><b>分红率</b><span>#{format_pct(r[:dividend_payout_ratio], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>30日跌幅</b><span>#{format_pct(r[:drop_30d], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>30d分位</b><span>#{format_ratio_pct(r[:pos_30d], 0)}</span></div>"
+  html << "<div class=\"kv-item\"><b>市盈率(TTM)</b><span>#{format_num(r[:pe_ttm], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>估值区域</b><span>#{r[:valuation_label].to_s}</span></div>"
   html << "<div class=\"kv-item\"><b>PE分位</b><span>#{format_ratio_pct(r[:pe_percentile], 0)}</span></div>"
+  html << "<div class=\"kv-item\"><b>PEG</b><span>#{format_num(r[:peg], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>PEG等级</b><span>#{peg_level_label(r[:peg_level])}</span></div>"
+  html << "<div class=\"kv-item\"><b>净利同比</b><span>#{format_pct(r[:net_profit_yoy], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>财报期</b><span>#{r[:finance_report_date].to_s}</span></div>"
+  html << "<div class=\"kv-item\"><b>市净率</b><span>#{format_num(r[:pb], 2)}</span></div>"
   html << "<div class=\"kv-item\"><b>PB分位</b><span>#{format_ratio_pct(r[:pb_percentile], 0)}</span></div>"
-  html << "<div class=\"kv-item\"><b>价格分位</b><span>#{format_ratio_pct(r[:price_position], 0)}</span></div>"
-  html << "<div class=\"kv-item\"><b>ROE</b><span>#{format_pct(r[:roe_jq], 1)}</span></div>"
-  html << "<div class=\"kv-item\"><b>资产负债率</b><span>#{format_pct(r[:asset_liability_ratio], 1)}</span></div>"
-  html << "<div class=\"kv-item\"><b>FCF收益率</b><span>#{format_pct(r[:fcf_yield], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>资产负债率</b><span>#{format_pct(r[:asset_liability_ratio], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>有息负债率</b><span>#{format_pct(r[:interest_debt_ratio], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>自由现金流</b><span>#{format_pct(r[:fcf_yield], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>FCF/EV</b><span>#{format_pct(r[:fcf_ev], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>FCF</b><span>#{format_yi(r[:fcff_back], 1)}</span></div>"
+  html << "<div class=\"kv-item\"><b>ROE(加权)</b><span>#{format_pct(r[:roe_jq], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>近5年均值≥12%</b><span>#{r[:roe_5y_avg_ge_12] ? '是' : '否'}</span></div>"
+  html << "<div class=\"kv-item\"><b>近5年最低≥8%</b><span>#{r[:roe_5y_min_ge_8] ? '是' : '否'}</span></div>"
+  html << "<div class=\"kv-item\"><b>近5年均值</b><span>#{format_pct(r[:roe_5y_avg], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>近5年最低</b><span>#{format_pct(r[:roe_5y_min], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>总股本</b><span>#{format_yigu(r[:total_shares], 2)}</span></div>"
+  html << "<div class=\"kv-item\"><b>连续分红</b><span>#{r[:consecutive_dividend_years] ? "#{r[:consecutive_dividend_years]}年" : ''}</span></div>"
   html << "<div class=\"kv-item kv-full\"><b>分类</b><span>#{Array(r[:categories]).join(' / ')}</span></div>"
   html << "</div>"
   html << "</div>"
@@ -422,7 +587,7 @@ html << <<~HTML
       const t2 = document.getElementById('t2');
       bind(t);
       bind(t2);
-      sortTable(t, 'score', 'num', 'desc');
+      sortTable(t, 'payout', 'num', 'desc');
 
       const q = document.getElementById('q');
       const coreOnly = document.getElementById('coreOnly');
