@@ -249,7 +249,7 @@ rows_out =
     end
 
 rows_out.sort_by! do |x|
-  [-(x[:dividend_payout_ratio] || 0).to_f, -(x[:dividend_yield] || 0).to_f, x[:code]]
+  [-(x[:avg_dividend_yield_3y] || 0).to_f, -(x[:dividend_yield] || 0).to_f, x[:code]]
 end
 
 consecutive_map = {}
@@ -389,14 +389,27 @@ html = <<~HTML
     .kv-item b{color:#555;font-weight:600}
     .kv-item span{color:#111}
     .kv-full{flex:1 1 100%;border-radius:10px}
+    .only-mobile{display:none}
+    .h-mobile{display:none}
+    .ladder-lines{display:flex;flex-direction:column;gap:2px;align-items:flex-end}
+    .ladder-lines span{white-space:nowrap}
+    .yield-lines{display:flex;flex-direction:column;gap:2px;align-items:flex-end}
+    .yield-lines span{white-space:nowrap}
     @media (max-width: 640px){
       body{padding:12px}
       .card{padding:12px}
-      th,td{padding:6px 8px}
-      table{font-size:11px}
+      th,td{padding:5px 6px}
+      table{font-size:10.5px}
       h1{font-size:18px}
       .detail-card{padding:10px}
       .kv-item{font-size:11px;padding:6px 9px}
+      .search{width:100%}
+      .only-desktop{display:none}
+      .only-mobile{display:table-cell}
+      .h-desktop{display:none}
+      .h-mobile{display:inline}
+      th,td{letter-spacing:-0.1px}
+      .code{font-size:10px}
     }
   </style>
 </head>
@@ -416,16 +429,15 @@ html = <<~HTML
     <table id="t">
       <thead>
         <tr>
-          <th data-k="namecode" data-t="str">名称/代码</th>
-          <th class="right" data-k="price" data-t="num">最新价</th>
-          <th class="right" data-k="avg3y" data-t="num">3年均息率</th>
-          <th class="right" data-k="min3y" data-t="num">3年最低息率</th>
-          <th class="right" data-k="dy" data-t="num">最新股息率</th>
-          <th class="right" data-k="payout" data-t="num">分红率</th>
-          <th class="right" data-k="cdy" data-t="num">连续分红(年)</th>
-          <th class="right" data-k="p5" data-t="num">首仓价(5%)</th>
-          <th class="right" data-k="p6" data-t="num">加仓价(6%)</th>
-          <th class="right" data-k="p7" data-t="num">重仓价(7%)</th>
+          <th data-k="namecode" data-t="str"><span class="h-desktop">名称/代码</span><span class="h-mobile">名称</span></th>
+          <th class="right" data-k="price" data-t="num"><span class="h-desktop">最新价</span><span class="h-mobile">价格</span></th>
+          <th class="right" data-k="yields" data-t="num"><span class="h-desktop">股息率(新/均/低)</span><span class="h-mobile">股息率</span></th>
+          <th class="right" data-k="payout" data-t="num"><span class="h-desktop">分红率</span><span class="h-mobile">分红率</span></th>
+          <th class="right" data-k="cdy" data-t="num"><span class="h-desktop">连续分红(年)</span><span class="h-mobile">连续分红</span></th>
+          <th class="right only-desktop" data-k="p5" data-t="num">首仓价(5%)</th>
+          <th class="right only-desktop" data-k="p6" data-t="num">加仓价(6%)</th>
+          <th class="right only-desktop" data-k="p7" data-t="num">重仓价(7%)</th>
+          <th class="right only-mobile" data-k="p5" data-t="num"><span class="h-desktop">目标价</span><span class="h-mobile">5/6/7</span></th>
         </tr>
       </thead>
       <tbody>
@@ -438,23 +450,22 @@ rows_out.each do |r|
   cur_price_ok = r[:current_price] && cur_price.finite?
 
   html << "<tr class=\"row-click main\" data-id=\"#{key}\" data-core=\"#{r[:is_core] ? 1 : 0}\">"
-  html << "<td class=\"name-code\" data-v=\"#{namecode}\">#{r[:name]}<div class=\"code\">#{r[:code]}</div></td>"
-  html << "<td class=\"right\" data-v=\"#{r[:current_price]}\">#{format_num(r[:current_price], 2)}</td>"
-  html << "<td class=\"right\" data-v=\"#{r[:avg_dividend_yield_3y]}\">#{format_pct(r[:avg_dividend_yield_3y], 2)}</td>"
-  html << "<td class=\"right\" data-v=\"#{r[:min_dividend_yield_3y]}\">#{format_pct(r[:min_dividend_yield_3y], 2)}</td>"
-  html << "<td class=\"right\" data-v=\"#{r[:dividend_yield]}\">#{format_pct(r[:dividend_yield], 2)}</td>"
-  html << "<td class=\"right\" data-v=\"#{r[:dividend_payout_ratio]}\">#{format_pct(r[:dividend_payout_ratio], 2)}</td>"
-  html << "<td class=\"right\" data-v=\"#{r[:consecutive_dividend_years]}\">#{r[:consecutive_dividend_years].to_i if r[:consecutive_dividend_years]}</td>"
+  html << "<td class=\"name-code\" data-label=\"名称/代码\" data-v=\"#{namecode}\">#{r[:name]}<div class=\"code\">#{r[:code]}</div></td>"
+  html << "<td class=\"right\" data-label=\"最新价\" data-v=\"#{r[:current_price]}\">#{format_num(r[:current_price], 2)}</td>"
+  html << "<td class=\"right\" data-label=\"股息率\" data-v=\"#{r[:dividend_yield]}\"><div class=\"yield-lines\"><span><span style=\"color:#666\">新</span> #{format_pct(r[:dividend_yield], 2)}</span><span><span style=\"color:#666\">均</span> #{format_pct(r[:avg_dividend_yield_3y], 2)}</span><span><span style=\"color:#666\">低</span> #{format_pct(r[:min_dividend_yield_3y], 2)}</span></div></td>"
+  html << "<td class=\"right\" data-label=\"分红率\" data-v=\"#{r[:dividend_payout_ratio]}\">#{format_pct(r[:dividend_payout_ratio], 0)}</td>"
+  html << "<td class=\"right\" data-label=\"连续分红(年)\" data-v=\"#{r[:consecutive_dividend_years]}\">#{r[:consecutive_dividend_years].to_i if r[:consecutive_dividend_years]}</td>"
   hit5 = cur_price_ok && r[:buy_price_5] && cur_price <= r[:buy_price_5].to_f
   hit6 = cur_price_ok && r[:buy_price_6] && cur_price <= r[:buy_price_6].to_f
   hit7 = cur_price_ok && r[:buy_price_7] && cur_price <= r[:buy_price_7].to_f
-  html << "<td class=\"right#{hit5 ? ' price-hit' : ''}\" data-v=\"#{r[:buy_price_5]}\">#{format_num(r[:buy_price_5], 2)}</td>"
-  html << "<td class=\"right#{hit6 ? ' price-hit' : ''}\" data-v=\"#{r[:buy_price_6]}\">#{format_num(r[:buy_price_6], 2)}</td>"
-  html << "<td class=\"right#{hit7 ? ' price-hit' : ''}\" data-v=\"#{r[:buy_price_7]}\">#{format_num(r[:buy_price_7], 2)}</td>"
+  html << "<td class=\"right only-desktop#{hit5 ? ' price-hit' : ''}\" data-label=\"首仓价(5%)\" data-v=\"#{r[:buy_price_5]}\">#{format_num(r[:buy_price_5], 2)}</td>"
+  html << "<td class=\"right only-desktop#{hit6 ? ' price-hit' : ''}\" data-label=\"加仓价(6%)\" data-v=\"#{r[:buy_price_6]}\">#{format_num(r[:buy_price_6], 2)}</td>"
+  html << "<td class=\"right only-desktop#{hit7 ? ' price-hit' : ''}\" data-label=\"重仓价(7%)\" data-v=\"#{r[:buy_price_7]}\">#{format_num(r[:buy_price_7], 2)}</td>"
+  html << "<td class=\"right only-mobile\" data-label=\"目标价\" data-v=\"#{r[:buy_price_5]}\"><div class=\"ladder-lines\"><span class=\"#{hit5 ? 'price-hit' : ''}\">首 #{format_num(r[:buy_price_5], 2)}</span><span class=\"#{hit6 ? 'price-hit' : ''}\">加 #{format_num(r[:buy_price_6], 2)}</span><span class=\"#{hit7 ? 'price-hit' : ''}\">重 #{format_num(r[:buy_price_7], 2)}</span></div></td>"
   html << "</tr>\n"
 
   html << "<tr class=\"detail-row row-hidden\" data-for=\"#{key}\">"
-  html << "<td class=\"detail\" colspan=\"10\">"
+  html << "<td class=\"detail\" colspan=\"9\">"
   html << "<div class=\"detail-card\">"
   html << "<div class=\"kv\">"
   html << "<div class=\"kv-item\"><b>换手率</b><span>#{format_pct(r[:turnover_rate], 2)}</span></div>"
@@ -593,7 +604,7 @@ html << <<~HTML
       const t2 = document.getElementById('t2');
       bind(t);
       bind(t2);
-      sortTable(t, 'payout', 'num', 'desc');
+      sortTable(t, 'avg3y', 'num', 'desc');
 
       const q = document.getElementById('q');
       const coreOnly = document.getElementById('coreOnly');
