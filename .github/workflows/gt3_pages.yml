@@ -15,6 +15,22 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: stock_dividend_insight
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stock_dividend_insight
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,9 +39,21 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ruby
+          bundler-cache: true
+
+      - name: Install libpq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev
+
+      - name: Migrate
+        run: bundle exec rake migrate
+
+      - name: Sync gt3
+        run: bundle exec ruby sync_stocks.rb --gt3
 
       - name: Generate static page
-        run: ruby scripts/gt3_pages.rb
+        run: bundle exec ruby scripts/gt3_pages.rb
 
       - name: Commit generated files
         run: |
