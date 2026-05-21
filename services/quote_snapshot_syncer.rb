@@ -1,5 +1,6 @@
 require 'faraday'
 require 'faraday/retry'
+require 'faraday/net_http_persistent'
 require 'json'
 
 class QuoteSnapshotSyncer
@@ -206,10 +207,9 @@ class QuoteSnapshotSyncer
     last_error = nil
     max_attempts.times do |attempt|
       begin
-        response = Faraday.get('https://qt.gtimg.cn/q=' + symbols.join(','), {}, {
+        response = tencent_conn.get('/q=' + symbols.join(','), {}, {
           'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer' => 'https://gu.qq.com/',
-          'Connection' => 'close'
+          'Referer' => 'https://gu.qq.com/'
         }) do |req|
           req.options.timeout = 6
           req.options.open_timeout = 3
@@ -228,6 +228,16 @@ class QuoteSnapshotSyncer
     end
 
     [nil, last_error]
+  end
+
+  def tencent_conn
+    @tencent_conn ||=
+      Faraday.new(url: 'https://qt.gtimg.cn') do |f|
+        f.request :retry, max: 3, interval: 0.05,
+                         interval_randomness: 0.5, backoff_factor: 2,
+                         exceptions: [Faraday::Error, JSON::ParserError]
+        f.adapter :net_http_persistent
+      end
   end
 
   def parse_tencent_lines(payload)

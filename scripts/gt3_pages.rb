@@ -111,10 +111,12 @@ codes = yml_rows.map { |x| x[:code] }.uniq
 
 stock_cols = Stock.column_names.to_h { |c| [c, true] }
 has_consecutive_dividend_years = stock_cols['consecutive_dividend_years']
+has_min_dividend_yield_3y = stock_cols['min_dividend_yield_3y']
 
 stock_pluck_keys = [:id, :code, :name]
 [
   :avg_dividend_yield_3y,
+  :min_dividend_yield_3y,
   :dividend_yield,
   :consecutive_dividend_years,
   :dividend_cash_per_share_latest_year,
@@ -159,6 +161,7 @@ stocks =
         code: v[:code].to_s.rjust(6, '0'),
         name: v[:name].to_s,
         avg_dividend_yield_3y: v[:avg_dividend_yield_3y]&.to_f,
+        min_dividend_yield_3y: has_min_dividend_yield_3y ? v[:min_dividend_yield_3y]&.to_f : nil,
         dividend_yield: v[:dividend_yield]&.to_f,
         consecutive_dividend_years: has_consecutive_dividend_years ? v[:consecutive_dividend_years]&.to_i : nil,
         dividend_cash_per_share_latest_year: v[:dividend_cash_per_share_latest_year]&.to_f,
@@ -224,9 +227,10 @@ rows_out =
 
       dps = m[:dividend_cash_per_share_latest_year]
       price = m[:current_price]
-      buy5 = (dps && dps > 0) ? (dps / 0.05) : nil
-      buy6 = (dps && dps > 0) ? (dps / 0.06) : nil
-      buy7 = (dps && dps > 0) ? (dps / 0.07) : nil
+      min3y = m[:min_dividend_yield_3y]
+      buy5 = (price && price > 0 && min3y && min3y > 0) ? (price * (min3y / 5.0)) : nil
+      buy6 = (price && price > 0 && min3y && min3y > 0) ? (price * (min3y / 6.0)) : nil
+      buy7 = (price && price > 0 && min3y && min3y > 0) ? (price * (min3y / 7.0)) : nil
       drop5 = (buy5 && price && price > 0) ? ((1.0 - (buy5 / price)) * 100.0) : nil
       drop6 = (buy6 && price && price > 0) ? ((1.0 - (buy6 / price)) * 100.0) : nil
       drop7 = (buy7 && price && price > 0) ? ((1.0 - (buy7 / price)) * 100.0) : nil
@@ -415,6 +419,7 @@ html = <<~HTML
           <th data-k="namecode" data-t="str">名称/代码</th>
           <th class="right" data-k="price" data-t="num">最新价</th>
           <th class="right" data-k="avg3y" data-t="num">3年均息率</th>
+          <th class="right" data-k="min3y" data-t="num">3年最低息率</th>
           <th class="right" data-k="dy" data-t="num">最新股息率</th>
           <th class="right" data-k="payout" data-t="num">分红率</th>
           <th class="right" data-k="cdy" data-t="num">连续分红(年)</th>
@@ -436,6 +441,7 @@ rows_out.each do |r|
   html << "<td class=\"name-code\" data-v=\"#{namecode}\">#{r[:name]}<div class=\"code\">#{r[:code]}</div></td>"
   html << "<td class=\"right\" data-v=\"#{r[:current_price]}\">#{format_num(r[:current_price], 2)}</td>"
   html << "<td class=\"right\" data-v=\"#{r[:avg_dividend_yield_3y]}\">#{format_pct(r[:avg_dividend_yield_3y], 2)}</td>"
+  html << "<td class=\"right\" data-v=\"#{r[:min_dividend_yield_3y]}\">#{format_pct(r[:min_dividend_yield_3y], 2)}</td>"
   html << "<td class=\"right\" data-v=\"#{r[:dividend_yield]}\">#{format_pct(r[:dividend_yield], 2)}</td>"
   html << "<td class=\"right\" data-v=\"#{r[:dividend_payout_ratio]}\">#{format_pct(r[:dividend_payout_ratio], 2)}</td>"
   html << "<td class=\"right\" data-v=\"#{r[:consecutive_dividend_years]}\">#{r[:consecutive_dividend_years].to_i if r[:consecutive_dividend_years]}</td>"
@@ -448,7 +454,7 @@ rows_out.each do |r|
   html << "</tr>\n"
 
   html << "<tr class=\"detail-row row-hidden\" data-for=\"#{key}\">"
-  html << "<td class=\"detail\" colspan=\"9\">"
+  html << "<td class=\"detail\" colspan=\"10\">"
   html << "<div class=\"detail-card\">"
   html << "<div class=\"kv\">"
   html << "<div class=\"kv-item\"><b>换手率</b><span>#{format_pct(r[:turnover_rate], 2)}</span></div>"

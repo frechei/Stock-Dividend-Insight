@@ -2,6 +2,7 @@ require 'json'
 require 'date'
 require 'faraday'
 require 'faraday/retry'
+require 'faraday/net_http_persistent'
 require_relative 'price_metrics_calculator'
 
 class PriceHistorySyncer
@@ -10,6 +11,17 @@ class PriceHistorySyncer
     @force = force
     @scope = scope
     @sleep_range = sleep_range
+
+    @conn =
+      Faraday.new(url: 'https://money.finance.sina.com.cn') do |f|
+        f.request :url_encoded
+        f.request :retry, max: 3, interval: 0.05,
+                         interval_randomness: 0.5, backoff_factor: 2,
+                         exceptions: [Faraday::Error, JSON::ParserError]
+        f.options.timeout = 15
+        f.options.open_timeout = 8
+        f.adapter :net_http_persistent
+      end
   end
 
   def sync
@@ -56,7 +68,7 @@ class PriceHistorySyncer
     # 默认抓取 2600 条数据 (约 10 年交易日)，如果是增量更新，则抓取 20 条
     datalen = @incremental ? 20 : 2600
 
-    url = "https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
+    path = "/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
     params = {
       symbol: symbol,
       scale: 240, # 日K
@@ -65,18 +77,9 @@ class PriceHistorySyncer
     }
 
     begin
-      conn = Faraday.new do |f|
-        f.request :url_encoded
-        f.request :retry, max: 3, interval: 0.05,
-                         interval_randomness: 0.5, backoff_factor: 2,
-                         exceptions: [Faraday::Error, JSON::ParserError]
-        f.adapter Faraday.default_adapter
-      end
-
-      response = conn.get(url, params, {
+      response = @conn.get(path, params, {
         'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer' => 'https://finance.sina.com.cn/',
-        'Connection' => 'close'
+        'Referer' => 'https://finance.sina.com.cn/'
       })
       
       raise Faraday::Error, "HTTP #{response.status}" unless response.success?

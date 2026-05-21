@@ -1,4 +1,5 @@
 require 'faraday'
+require 'faraday/net_http_persistent'
 require 'json'
 require 'yaml'
 
@@ -34,7 +35,7 @@ class Csi500StockAppender
 
     conn = Faraday.new do |f|
       f.request :url_encoded
-      f.adapter Faraday.default_adapter
+      f.adapter :net_http_persistent
     end
     url_em = 'https://searchapi.eastmoney.com/api/suggest/get'
 
@@ -119,6 +120,7 @@ class Csi500StockAppender
 
   private
   def fetch_sina_index_constituents
+    conn = sina_conn
     rows = []
     page = 1
     loop do
@@ -126,7 +128,7 @@ class Csi500StockAppender
       resp = nil
       retries = 4
       begin
-        resp = Faraday.get(url, {}, { 'User-Agent' => 'Mozilla/5.0', 'Connection' => 'close' }) do |req|
+        resp = conn.get(url, {}, { 'User-Agent' => 'Mozilla/5.0' }) do |req|
           req.options.timeout = 20
           req.options.open_timeout = 8
         end
@@ -158,7 +160,7 @@ class Csi500StockAppender
         3.times do |attempt|
           sleep((attempt + 1) * 1.2 + rand(0.0..0.8))
           begin
-            resp2 = Faraday.get(url, {}, { 'User-Agent' => 'Mozilla/5.0', 'Connection' => 'close' }) do |req|
+            resp2 = conn.get(url, {}, { 'User-Agent' => 'Mozilla/5.0' }) do |req|
               req.options.timeout = 20
               req.options.open_timeout = 8
             end
@@ -234,16 +236,16 @@ class Csi500StockAppender
     return {} if symbols.empty?
 
     out = {}
+    conn = tencent_conn
     symbols.each_slice(50).with_index(1) do |batch, idx|
       payload = nil
       last_error = nil
 
       3.times do |attempt|
         begin
-          resp = Faraday.get('https://qt.gtimg.cn/q=' + batch.join(','), {}, {
+          resp = conn.get('/q=' + batch.join(','), {}, {
             'User-Agent' => 'Mozilla/5.0',
-            'Referer' => 'https://gu.qq.com/',
-            'Connection' => 'close'
+            'Referer' => 'https://gu.qq.com/'
           }) do |req|
             req.options.timeout = 10
             req.options.open_timeout = 5
@@ -272,6 +274,21 @@ class Csi500StockAppender
     end
 
     out
+  end
+
+  def sina_conn
+    @sina_conn ||=
+      Faraday.new(url: 'https://vip.stock.finance.sina.com.cn') do |f|
+        f.request :url_encoded
+        f.adapter :net_http_persistent
+      end
+  end
+
+  def tencent_conn
+    @tencent_conn ||=
+      Faraday.new(url: 'https://qt.gtimg.cn') do |f|
+        f.adapter :net_http_persistent
+      end
   end
 
   def parse_tencent_lines(payload)

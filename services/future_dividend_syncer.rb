@@ -1,4 +1,6 @@
 require 'faraday'
+require 'faraday/retry'
+require 'faraday/net_http_persistent'
 require 'json'
 require 'date'
 require 'digest'
@@ -22,11 +24,21 @@ class FutureDividendSyncer
           h[code.to_s.rjust(6, '0')] = { id: id, name: name.to_s }
         end
 
-    url = 'https://datacenter-web.eastmoney.com/api/data/v1/get'
     headers = {
       'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept' => 'application/json'
     }
+
+    conn =
+      Faraday.new(url: 'https://datacenter-web.eastmoney.com') do |f|
+        f.request :url_encoded
+        f.request :retry, max: 3, interval: 0.05,
+                         interval_randomness: 0.5, backoff_factor: 2,
+                         exceptions: [Faraday::Error, JSON::ParserError]
+        f.options.timeout = 15
+        f.options.open_timeout = 8
+        f.adapter :net_http_persistent
+      end
 
     all_rows = []
     page_number = 1
@@ -43,7 +55,7 @@ class FutureDividendSyncer
         filter: "(EX_DIVIDEND_DATE>='#{start_date.strftime('%Y-%m-%d')}') AND (EX_DIVIDEND_DATE<='#{end_date.strftime('%Y-%m-%d')}')"
       }
 
-      resp = Faraday.get(url, params, headers)
+      resp = conn.get('/api/data/v1/get', params, headers)
       json = JSON.parse(resp.body) rescue {}
       data = json.dig('result', 'data') || []
       break if data.empty?
@@ -127,4 +139,3 @@ class FutureDividendSyncer
     nil
   end
 end
-

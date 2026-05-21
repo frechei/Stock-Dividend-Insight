@@ -1,5 +1,6 @@
 require 'date'
 require 'faraday'
+require 'faraday/net_http_persistent'
 require 'json'
 
 class ValuationHistorySyncer
@@ -13,7 +14,7 @@ class ValuationHistorySyncer
   def sync
     conn = Faraday.new do |f|
       f.request :url_encoded
-      f.adapter Faraday.default_adapter
+      f.adapter :net_http_persistent
     end
 
     @scope.find_each do |stock|
@@ -46,7 +47,7 @@ class ValuationHistorySyncer
         source: 'WEB',
         client: 'WEB',
         filter: "(SECURITY_CODE=\"#{code}\")(TRADE_DATE>='#{from_str}')"
-      }, { 'User-Agent' => 'Mozilla/5.0', 'Referer' => 'https://data.eastmoney.com/', 'Connection' => 'close' }) do |req|
+      }, { 'User-Agent' => 'Mozilla/5.0', 'Referer' => 'https://data.eastmoney.com/' }) do |req|
         req.options.timeout = 15
         req.options.open_timeout = 8
       end

@@ -1,5 +1,6 @@
 require 'faraday'
 require 'faraday/retry'
+require 'faraday/net_http_persistent'
 require 'json'
 require 'date'
 
@@ -8,6 +9,17 @@ class DividendSyncer
     @scope = scope
     @sleep_range = sleep_range
     @force = force
+
+    @conn =
+      Faraday.new(url: 'https://datacenter-web.eastmoney.com') do |f|
+        f.request :url_encoded
+        f.request :retry, max: 3, interval: 0.05,
+                         interval_randomness: 0.5, backoff_factor: 2,
+                         exceptions: [Faraday::Error, JSON::ParserError]
+        f.options.timeout = 15
+        f.options.open_timeout = 8
+        f.adapter :net_http_persistent
+      end
   end
 
   def sync
@@ -26,7 +38,6 @@ class DividendSyncer
   private
 
   def fetch_and_save_dividends(stock)
-    url = "https://datacenter-web.eastmoney.com/api/data/get"
     params = {
       type: "RPT_LICO_FN_CPD",
       sty: "ALL",
@@ -39,16 +50,7 @@ class DividendSyncer
       'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept' => 'application/json'
     }
-
-    conn = Faraday.new(url: url) do |f|
-      f.request :url_encoded
-      f.request :retry, max: 3, interval: 0.05,
-                       interval_randomness: 0.5, backoff_factor: 2,
-                       exceptions: [Faraday::Error, JSON::ParserError]
-      f.adapter Faraday.default_adapter
-    end
-
-    response = conn.get('', params, headers)
+    response = @conn.get('/api/data/get', params, headers)
     return unless response.success?
 
     data = JSON.parse(response.body) rescue nil
@@ -170,8 +172,10 @@ class DividendSyncer
 
         if yields.size == 3
           stock.avg_dividend_yield_3y = yields.sum / 3.0
+          stock.min_dividend_yield_3y = yields.min if stock.has_attribute?(:min_dividend_yield_3y)
         else
           stock.avg_dividend_yield_3y = nil
+          stock.min_dividend_yield_3y = nil if stock.has_attribute?(:min_dividend_yield_3y)
         end
       end
     else
@@ -179,6 +183,7 @@ class DividendSyncer
       stock.dividend_cash_per_share_year = nil if stock.has_attribute?(:dividend_cash_per_share_year)
       stock.dividend_cash_per_share_latest_year = nil if stock.has_attribute?(:dividend_cash_per_share_latest_year)
       stock.avg_dividend_yield_3y = nil if stock.has_attribute?(:avg_dividend_yield_3y)
+      stock.min_dividend_yield_3y = nil if stock.has_attribute?(:min_dividend_yield_3y)
       stock.consecutive_dividend_years = nil if stock.has_attribute?(:consecutive_dividend_years)
     end
     stock.save! if stock.changed?

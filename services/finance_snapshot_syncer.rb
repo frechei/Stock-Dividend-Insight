@@ -1,5 +1,6 @@
 require 'faraday'
 require 'faraday/retry'
+require 'faraday/net_http_persistent'
 require 'json'
 require 'date'
 
@@ -15,7 +16,7 @@ class FinanceSnapshotSyncer
       f.request :retry, max: 3, interval: 0.05,
                        interval_randomness: 0.5, backoff_factor: 2,
                        exceptions: [Faraday::Error, JSON::ParserError]
-      f.adapter Faraday.default_adapter
+      f.adapter :net_http_persistent
     end
 
     @scope.order(:id).find_each do |stock|
@@ -40,8 +41,7 @@ class FinanceSnapshotSyncer
       filter: "(SECURITY_CODE=\"#{code}\")"
     }, {
       'User-Agent' => 'Mozilla/5.0',
-      'Referer' => 'https://data.eastmoney.com/',
-      'Connection' => 'close'
+      'Referer' => 'https://data.eastmoney.com/'
     }) do |req|
       req.options.timeout = 15
       req.options.open_timeout = 8

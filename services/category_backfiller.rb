@@ -1,4 +1,5 @@
 require 'faraday'
+require 'faraday/net_http_persistent'
 require 'yaml'
 
 class CategoryBackfiller
@@ -146,7 +147,7 @@ class CategoryBackfiller
       if @use_sina
         Faraday.new(url: 'https://vip.stock.finance.sina.com.cn') do |f|
           f.request :url_encoded
-          f.adapter Faraday.default_adapter
+          f.adapter :net_http_persistent
         end
       end
 
@@ -285,7 +286,7 @@ class CategoryBackfiller
 
     retries = 3
     begin
-      resp = conn.get(path, {}, { 'User-Agent' => 'Mozilla/5.0', 'Connection' => 'close' }) do |req|
+      resp = conn.get(path, {}, { 'User-Agent' => 'Mozilla/5.0' }) do |req|
         req.options.timeout = 15
         req.options.open_timeout = 8
       end
@@ -341,7 +342,7 @@ class CategoryBackfiller
 
     retries = 3
     begin
-      resp = conn.get(path, {}, { 'User-Agent' => 'Mozilla/5.0', 'Connection' => 'close' }) do |req|
+      resp = conn.get(path, {}, { 'User-Agent' => 'Mozilla/5.0' }) do |req|
         req.options.timeout = 15
         req.options.open_timeout = 8
       end

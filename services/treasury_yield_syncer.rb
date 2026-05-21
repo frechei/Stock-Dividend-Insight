@@ -1,5 +1,6 @@
 require 'date'
 require 'faraday'
+require 'faraday/net_http_persistent'
 require 'bigdecimal/util'
 require 'json'
 
@@ -134,11 +135,6 @@ class TreasuryYieldSyncer
   end
 
   def fetch_chinabond_10y_range(start_date:, end_date:, idx10:)
-    conn = Faraday.new(url: 'https://yield.chinabond.com.cn') do |f|
-      f.request :url_encoded
-      f.adapter Faraday.default_adapter
-    end
-
     params = {
       startTime: start_date.to_s,
       endTime: end_date.to_s,
@@ -153,11 +149,10 @@ class TreasuryYieldSyncer
     response = nil
     retries = 3
     begin
-      response = conn.post(url, '', {
+      response = chinabond_conn.post(url, '', {
         'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer' => 'https://yield.chinabond.com.cn/cbweb-mn/yield_main',
-        'Content-Type' => 'application/x-www-form-urlencoded',
-        'Connection' => 'close'
+        'Content-Type' => 'application/x-www-form-urlencoded'
       }) do |req|
         req.options.timeout = 30
         req.options.open_timeout = 8
@@ -202,11 +197,19 @@ class TreasuryYieldSyncer
     [rows, idx10]
   end
 
+  def chinabond_conn
+    @chinabond_conn ||=
+      Faraday.new(url: 'https://yield.chinabond.com.cn') do |f|
+        f.request :url_encoded
+        f.adapter :net_http_persistent
+      end
+  end
+
   def sync_fred
     require 'csv'
 
     url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=#{@series_id}"
-    response = Faraday.get(url) do |req|
+    response = fred_conn.get(url) do |req|
       req.options.timeout = 15
       req.options.open_timeout = 8
     end
@@ -254,5 +257,12 @@ class TreasuryYieldSyncer
     end
 
     puts "Treasury yield sync: source=#{@source} series=#{@series_id} inserted=#{inserted} updated=#{updated} skipped=#{skipped}"
+  end
+
+  def fred_conn
+    @fred_conn ||=
+      Faraday.new do |f|
+        f.adapter :net_http_persistent
+      end
   end
 end

@@ -1,4 +1,5 @@
 require 'faraday'
+require 'faraday/net_http_persistent'
 require 'yaml'
 require_relative 'csi500_stock_appender'
 
@@ -32,14 +33,14 @@ class BoshiHldw100ConstituentsAppender
   def fetch_sina_index_constituent_codes
     conn = Faraday.new do |f|
       f.request :url_encoded
-      f.adapter Faraday.default_adapter
+      f.adapter :net_http_persistent
     end
 
     rows = []
     page = 1
     loop do
       url = "https://vip.stock.finance.sina.com.cn/corp/go.php/vII_NewestComponent/indexid/#{@index_id}.phtml?page=#{page}"
-      resp = conn.get(url, {}, { 'User-Agent' => 'Mozilla/5.0', 'Connection' => 'close' }) do |req|
+      resp = conn.get(url, {}, { 'User-Agent' => 'Mozilla/5.0' }) do |req|
         req.options.timeout = 20
         req.options.open_timeout = 8
       end

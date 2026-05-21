@@ -1,5 +1,6 @@
 require 'date'
 require 'faraday'
+require 'faraday/net_http_persistent'
 require 'digest'
 require 'json'
 require 'time'
@@ -74,18 +75,24 @@ class MacroMetricSyncer
     ms = (Time.now.to_f * 1000).to_i
     sign = ms.to_s + Digest::SHA256.hexdigest((ms * 1.01).floor.to_s).upcase[0, 32]
 
-    resp = Faraday.get(url, {}, {
+    resp = conn.get(url, {}, {
       'Accept' => 'application/json',
       'User-Agent' => 'Mozilla/5.0',
       'Cache-Control' => 'no-store',
-      'x-sign' => sign,
-      'Connection' => 'close'
+      'x-sign' => sign
     }) do |req|
       req.options.timeout = 15
       req.options.open_timeout = 8
     end
     raise "http #{resp.status}" unless resp.success?
     JSON.parse(resp.body.to_s)
+  end
+
+  def conn
+    @conn ||=
+      Faraday.new do |f|
+        f.adapter :net_http_persistent
+      end
   end
 
   def parse_ms_time(ms)
