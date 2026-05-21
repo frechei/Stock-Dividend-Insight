@@ -291,6 +291,8 @@ get '/' do
   @page_title = nil
   allowed_sort_fields = %w[
     current_price dividend_yield
+    avg_dividend_yield_3y
+    buy_score
     drop_to_buy_pct
     turnover_rate volume pe_ttm pe_level pe_percentile pb pb_level pb_percentile roe_jq roe_level total_shares
     peg peg_level net_profit_yoy asset_liability_ratio interest_debt_ratio fcf_yield fcf_ev
@@ -630,6 +632,8 @@ get '/dividend_layers' do
 
   allowed_sort_fields = %w[
     current_price dividend_yield
+    avg_dividend_yield_3y
+    buy_score
     drop_to_buy_pct
     turnover_rate volume pe_ttm pe_level pe_percentile pb pb_level pb_percentile roe_jq roe_level total_shares
     peg peg_level net_profit_yoy asset_liability_ratio interest_debt_ratio fcf_yield fcf_ev
@@ -1171,6 +1175,7 @@ helpers do
     %w[
       current_price dividend_yield
       avg_dividend_yield_3y
+      buy_score
       drop_to_buy_pct
       turnover_rate volume pe_ttm pe_level pe_percentile pb pb_level pb_percentile roe_jq roe_level total_shares
       peg peg_level net_profit_yoy asset_liability_ratio interest_debt_ratio fcf_yield fcf_ev
@@ -1695,6 +1700,7 @@ helpers do
       'current_price' => '最新价',
       'dividend_yield' => '历史股息率',
       'avg_dividend_yield_3y' => '近3年平均股息率',
+      'buy_score' => '买入评分',
       'drop_to_buy_pct' => '到买入价需跌幅(5%)',
       'dividend_payout_ratio' => '分红率',
       'turnover_rate' => '换手率',
@@ -1951,6 +1957,14 @@ helpers do
   def format_decimal(value, precision = 2)
     return '-' if value.nil?
     sprintf("%.#{precision}f", value)
+  end
+
+  def format_score_half(value)
+    return '-' if value.nil?
+    v = value.to_f
+    return '-' unless v.finite?
+    r = (v * 2.0).round / 2.0
+    ((r - r.round).abs < 1e-9) ? r.round.to_s : format_decimal(r, 1)
   end
 
   def format_percent(value)

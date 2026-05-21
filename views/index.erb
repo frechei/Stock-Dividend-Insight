@@ -575,6 +575,12 @@
                     </th>
                     <th class="p-3 border-b border-gray-200 text-right hidden md:table-cell">
                         <div class="inline-flex items-center gap-1 justify-end w-full">
+                            <%= sort_link('buy_score', '买入评分') %>
+                            <a href="/kb/dividend" class="text-gray-400 hover:text-blue-600 normal-case" title="综合分数 1-5（0.5步进）：分红率、PE等级、PB等级、PEG等级、资产负债率、FCF收益率、ROE等级、全量分位（缺失取中值）">?</a>
+                        </div>
+                    </th>
+                    <th class="p-3 border-b border-gray-200 text-right hidden md:table-cell">
+                        <div class="inline-flex items-center gap-1 justify-end w-full">
                             <%= sort_link('drop_to_buy_pct', '到买入价需跌幅') %>
                             <a href="/kb/dividend" class="text-gray-400 hover:text-blue-600 normal-case" title="按最近一年每股股息(DPS)反推 5% 股息率买入价，再计算当前价距买入价的跌幅">?</a>
                         </div>
@@ -698,6 +704,7 @@
                         <td class="p-3 text-right hidden md:table-cell"><%= format_decimal(stock.current_price, 2) %></td>
                         <td class="p-3 text-right font-bold text-blue-700"><%= stock.dividend_yield.nil? ? '未同步' : format_percent(stock.dividend_yield) %></td>
                         <td class="p-3 text-right hidden md:table-cell"><%= stock.respond_to?(:avg_dividend_yield_3y) && !stock.avg_dividend_yield_3y.nil? ? format_percent(stock.avg_dividend_yield_3y) : '-' %></td>
+                        <td class="p-3 text-right hidden md:table-cell"><%= stock.respond_to?(:buy_score) && !stock.buy_score.nil? ? format_score_half(stock.buy_score) : '-' %></td>
                         <td class="p-3 text-right hidden md:table-cell">
                             <%
                                 pct =

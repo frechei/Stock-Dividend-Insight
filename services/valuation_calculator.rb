@@ -132,6 +132,7 @@ class ValuationCalculator
     stock.pe_percentile = pe_percentile
     stock.pe_percentile_level = pe_percentile_level_for(pe_percentile)
 
+    stock.buy_score = compute_buy_score(stock) if stock.has_attribute?(:buy_score)
     stock.save! if stock.changed?
   end
 
@@ -257,5 +258,128 @@ class ValuationCalculator
     return 4 if v <= 6
     return 5 if v <= 10
     6
+  end
+
+  def compute_buy_score(stock)
+    weights = {
+      dividend_payout_ratio: 0.15,
+      pe_level: 0.15,
+      pb_level: 0.15,
+      peg_level: 0.10,
+      asset_liability_ratio: 0.10,
+      fcf_yield: 0.10,
+      roe_level: 0.15,
+      price_position: 0.10
+    }
+
+    s = 0.0
+    s += weights[:dividend_payout_ratio] * score_dividend_payout_ratio(stock.dividend_payout_ratio)
+    s += weights[:pe_level] * score_pe_level(stock.pe_level)
+    s += weights[:pb_level] * score_pb_level(stock.pb_level)
+    s += weights[:peg_level] * score_peg_level(stock.peg_level)
+    s += weights[:asset_liability_ratio] * score_asset_liability_ratio(stock.asset_liability_ratio)
+    s += weights[:fcf_yield] * score_fcf_yield(stock.fcf_yield)
+    s += weights[:roe_level] * score_roe_level(stock.roe_level)
+    s += weights[:price_position] * score_price_position(stock.price_position)
+
+    raw = 1.0 + 4.0 * clamp01(s)
+    rounded = (clamp(raw, 1.0, 5.0) * 2.0).round / 2.0
+    clamp(rounded, 1.0, 5.0).round(2)
+  end
+
+  def score_dividend_payout_ratio(value)
+    return 0.5 if value.nil?
+    r = value.to_f
+    return 0.5 unless r.finite?
+    return 0.3 if r <= 0
+    return 0.6 if r < 20
+    return 1.0 if r <= 60
+    return 0.7 if r <= 100
+    return 0.4 if r <= 150
+    0.2
+  end
+
+  def score_pe_level(level)
+    return 0.5 if level.nil?
+    case level.to_i
+    when 2 then 1.0
+    when 3 then 0.85
+    when 4 then 0.60
+    when 5 then 0.40
+    when 6 then 0.20
+    when 7 then 0.05
+    when 1 then 0.10
+    else 0.5
+    end
+  end
+
+  def score_pb_level(level)
+    return 0.5 if level.nil?
+    case level.to_i
+    when 1 then 1.0
+    when 2 then 0.85
+    when 3 then 0.60
+    when 4 then 0.40
+    when 5 then 0.20
+    when 6 then 0.05
+    else 0.5
+    end
+  end
+
+  def score_peg_level(level)
+    return 0.5 if level.nil?
+    case level.to_i
+    when 1 then 1.0
+    when 2 then 0.85
+    when 3 then 0.60
+    when 4 then 0.30
+    when 5 then 0.10
+    else 0.5
+    end
+  end
+
+  def score_asset_liability_ratio(value)
+    return 0.5 if value.nil?
+    r = value.to_f
+    return 0.5 unless r.finite?
+    return 1.0 if r <= 0
+    return 0.0 if r >= 80.0
+    clamp01(1.0 - (r / 80.0))
+  end
+
+  def score_fcf_yield(value)
+    return 0.5 if value.nil?
+    y = value.to_f
+    return 0.5 unless y.finite?
+    clamp01(y / 10.0)
+  end
+
+  def score_roe_level(level)
+    return 0.5 if level.nil?
+    case level.to_i
+    when 1 then 0.40
+    when 2 then 0.70
+    when 3 then 1.00
+    else 0.5
+    end
+  end
+
+  def score_price_position(value)
+    return 0.5 if value.nil?
+    p = value.to_f
+    return 0.5 unless p.finite?
+    clamp01(1.0 - p)
+  end
+
+  def clamp01(x)
+    clamp(x.to_f, 0.0, 1.0)
+  end
+
+  def clamp(x, lo, hi)
+    v = x.to_f
+    return lo unless v.finite?
+    return lo if v < lo
+    return hi if v > hi
+    v
   end
 end

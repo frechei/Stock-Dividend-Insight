@@ -22,11 +22,12 @@ require_relative 'services/macro_metric_syncer'
 require_relative 'services/future_dividend_syncer'
 
 class StockSyncService
-  def initialize(incremental: false, force: false, force_pull: false, backfill_cn10y: false, add_csi500: false, add_a500: false, add_kc50: false, add_tech50: false, add_ai50: false, add_dividend_etf_constituents: false, add_boshi_hldw100: false, add_fcf: false, add_theme_etf_constituents: false, backfill_fcf: false, skip_second_pass: false, fill_categories: false, sync_valuation_history: true, valuation_years: 10, valuation_force: false, sync_roe_history: true, roe_years: 12)
+  def initialize(incremental: false, force: false, force_pull: false, backfill_cn10y: false, add_csi500: false, add_a500: false, add_kc50: false, add_tech50: false, add_ai50: false, add_dividend_etf_constituents: false, add_boshi_hldw100: false, add_fcf: false, add_theme_etf_constituents: false, backfill_fcf: false, skip_second_pass: false, fill_categories: false, sync_valuation_history: true, valuation_years: 10, valuation_force: false, sync_roe_history: true, roe_years: 12, gt3: false)
     @incremental = incremental
     @force = force
     @force_pull = force_pull
     @backfill_cn10y = backfill_cn10y
+    @gt3 = gt3
     @add_csi500 = add_csi500
     @add_a500 = add_a500
     @add_kc50 = add_kc50
@@ -52,6 +53,19 @@ class StockSyncService
     if @add_theme_etf_constituents
       apply_theme_etf_constituents_to_yml!
       return
+    end
+
+    if @gt3
+      @add_csi500 = false
+      @add_a500 = false
+      @add_kc50 = false
+      @add_tech50 = false
+      @add_ai50 = false
+      @add_dividend_etf_constituents = false
+      @add_boshi_hldw100 = false
+      @add_fcf = false
+      @add_theme_etf_constituents = false
+      @fill_categories = false
     end
 
     if @add_csi500
@@ -83,9 +97,33 @@ class StockSyncService
     end
 
     # 1. 加载股票列表
-    StockLoader.new.load
-    stock_scope = Stock.where(asset_type: 'stock')
-    quote_scope = Stock.where(asset_type: %w[stock etf index])
+    loader_file = @gt3 ? 'stocks-dividend-gt3.yml' : 'stocks-pro.yml'
+    StockLoader.new(loader_file).load
+
+    codes =
+      begin
+        data = YAML.load_file(loader_file)
+        list = data.is_a?(Hash) ? (data['stocks'] || []) : (data || [])
+        list
+          .map { |x| x['code'].to_s.strip.rjust(6, '0') }
+          .select { |x| x.match?(/^\d{6}$/) }
+          .uniq
+      rescue StandardError
+        []
+      end
+
+    stock_scope =
+      if @gt3 && codes.any?
+        Stock.where(asset_type: 'stock', code: codes)
+      else
+        Stock.where(asset_type: 'stock')
+      end
+    quote_scope =
+      if @gt3 && codes.any?
+        Stock.where(asset_type: 'stock', code: codes)
+      else
+        Stock.where(asset_type: %w[stock etf index])
+      end
     
     # 1.5 同步十年期国债收益率
     TreasuryYieldSyncer.new(country: 'CN', tenor: '10Y', source: 'CHINABOND', force: @backfill_cn10y).sync
@@ -247,6 +285,7 @@ if __FILE__ == $0
   force = ARGV.include?('--force')
   force_pull = ARGV.include?('--force-pull')
   backfill_cn10y = ARGV.include?('--backfill-cn10y')
+  gt3 = ARGV.include?('--gt3')
   add_csi500 = ARGV.include?('--add-csi500')
   add_a500 = ARGV.include?('--add-a500')
   add_kc50 = ARGV.include?('--add-kc50')
@@ -266,5 +305,5 @@ if __FILE__ == $0
   sync_roe_history = !ARGV.include?('--skip-roe-history')
   roe_years = (ARGV.find { |x| x.start_with?('--roe-years=') } || '').split('=', 2)[1].to_i
   roe_years = 12 if roe_years <= 0
-  StockSyncService.new(incremental: incremental, force: force, force_pull: force_pull, backfill_cn10y: backfill_cn10y, add_csi500: add_csi500, add_a500: add_a500, add_kc50: add_kc50, add_tech50: add_tech50, add_ai50: add_ai50, add_dividend_etf_constituents: add_dividend_etf_constituents, add_boshi_hldw100: add_boshi_hldw100, add_fcf: add_fcf, add_theme_etf_constituents: add_theme_etf_constituents, backfill_fcf: backfill_fcf, skip_second_pass: skip_second_pass, fill_categories: fill_categories, sync_valuation_history: sync_valuation_history, valuation_years: valuation_years, valuation_force: valuation_force, sync_roe_history: sync_roe_history, roe_years: roe_years).run
+  StockSyncService.new(incremental: incremental, force: force, force_pull: force_pull, backfill_cn10y: backfill_cn10y, gt3: gt3, add_csi500: add_csi500, add_a500: add_a500, add_kc50: add_kc50, add_tech50: add_tech50, add_ai50: add_ai50, add_dividend_etf_constituents: add_dividend_etf_constituents, add_boshi_hldw100: add_boshi_hldw100, add_fcf: add_fcf, add_theme_etf_constituents: add_theme_etf_constituents, backfill_fcf: backfill_fcf, skip_second_pass: skip_second_pass, fill_categories: fill_categories, sync_valuation_history: sync_valuation_history, valuation_years: valuation_years, valuation_force: valuation_force, sync_roe_history: sync_roe_history, roe_years: roe_years).run
 end
