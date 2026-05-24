@@ -1,5 +1,5 @@
 ---
-:generated_date_beijing: '2026-05-22'
+:generated_date_beijing: '2026-05-24'
 :source_yml: stocks-dividend-gt3.yml
 :filter:
   :dividend_yield_gt: 3.0
@@ -7697,22 +7697,13 @@
   :roe_5y_avg: 18.436
   :roe_5y_min: 11.24
 :upcoming_dividends_6m:
-- :code: '300979'
-  :name: 华利集团
-  :ex_dividend_date: '2026-05-22'
-  :equity_record_date: '2026-05-21'
-  :notice_date: '2026-05-15'
-  :cash_dividend_per_share: 1.1
-  :dividend_yield_pct: 2.9443
-  :progress: 实施分配
-  :plan_description: 10派11.00元(含税,扣税后9.90元)
 - :code: '000423'
   :name: 东阿阿胶
   :ex_dividend_date: '2026-05-25'
   :equity_record_date: '2026-05-22'
   :notice_date: '2026-05-19'
   :cash_dividend_per_share: 1.4355
-  :dividend_yield_pct: 2.8988
+  :dividend_yield_pct:
   :progress: 实施分配
   :plan_description: 10派14.354904元(含税,扣税后12.919414元)
 - :code: '601018'
@@ -7775,7 +7766,7 @@
   :equity_record_date: '2026-05-27'
   :notice_date: '2026-05-21'
   :cash_dividend_per_share: 0.8
-  :dividend_yield_pct: 2.5324
+  :dividend_yield_pct:
   :progress: 实施分配
   :plan_description: 10派8.00元(含税,扣税后7.20元)
 - :code: '002032'
@@ -7820,7 +7811,7 @@
   :equity_record_date: '2026-05-27'
   :notice_date: '2026-05-22'
   :cash_dividend_per_share: 0.5
-  :dividend_yield_pct: 3.4698
+  :dividend_yield_pct:
   :progress: 实施分配
   :plan_description: 10派5.00元(含税)
 - :code: '000999'
